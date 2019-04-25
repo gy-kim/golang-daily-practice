@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:c9b4276d0f084ebc1c0b046a792e77d665b062cd0520143d90846c0f268815f5"
+  name = "github.com/DATA-DOG/go-sqlmock"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "3f9954f6f6697845b082ca57995849ddf614f450"
+  version = "v1.3.3"
+
+[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -29,10 +37,9 @@
   digest = "1:17c4ccf5cdb1627aaaeb5c1725cb13aec97b63ea2033d4a6824dcaedf94223dc"
   name = "github.com/stretchr/testify"
   packages = [
-    ".",
     "assert",
-    "http",
     "mock",
+    "require",
   ]
   pruneopts = "T"
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
@@ -41,6 +48,11 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/stretchr/testify"]
+  input-imports = [
+    "github.com/DATA-DOG/go-sqlmock",
+    "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/mock",
+    "github.com/stretchr/testify/require",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
