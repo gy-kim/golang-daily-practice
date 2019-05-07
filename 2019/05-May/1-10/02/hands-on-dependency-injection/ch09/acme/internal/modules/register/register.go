@@ -89,7 +89,7 @@ func (r *Registerer) Do(ctx context.Context, in *data.Person) (int, error) {
 		return defaultPersonID, err
 	}
 
-	return id, nil
+	return id, nils
 }
 
 // validate input and return error on fail

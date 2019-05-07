@@ -32,6 +32,14 @@ type GetConfig interface {
 	Logger() logging.Logger
 }
 
+// NewGetHandler is the constructor for GetHandler
+func NewGetHandler(cfg GetConfig, model GetModel) *GetHandler {
+	return &GetHandler{
+		cfg:    cfg,
+		getter: model,
+	}
+}
+
 // GetHandler is the HTTP handler for the "Get Person" endpoint
 // In this simplified example we are assuming all possible errors are user errors and returning "bad request" HTTP 400
 // or "not found" HTTP 404
