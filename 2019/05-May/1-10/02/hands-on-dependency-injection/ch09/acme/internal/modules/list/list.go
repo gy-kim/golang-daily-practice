@@ -13,6 +13,13 @@ var (
 	errPeopleNotFound = errors.New("no people found")
 )
 
+// NewLister creates and initializes a Lister
+func NewLister(cfg Config) *Lister {
+	return &Lister{
+		cfg: cfg,
+	}
+}
+
 // Config is the config for Lister
 type Config interface {
 	Logger() logging.Logger

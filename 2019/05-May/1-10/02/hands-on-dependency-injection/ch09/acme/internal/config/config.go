@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/gy-kim/golang-daily-practice/2019/05-May/1-10/01/hands-on-dependency-injection/ch08/acme/internal/logging"
+	"github.com/gy-kim/golang-daily-practice/2019/05-May/1-10/02/hands-on-dependency-injection/ch09/acme/internal/logging"
 )
 
 // DefaultEnvVar is the default environment variable the points to the config file
@@ -14,9 +14,9 @@ const DefaultEnvVar = "ACME_CONFIG"
 // App is the application config
 var App *Config
 
-// Config define the JSON format for the config file
+// Config defines the JSON format for the config file
 type Config struct {
-	// DSN is the data source name
+	// DSN is the data source name (format: https://github.com/go-sql-driver/mysql/#dsn-data-source-name)
 	DSN string
 
 	// Address is the IP address and port to bind this rest to
@@ -25,16 +25,17 @@ type Config struct {
 	// BasePrice is the price of registration
 	BasePrice float64
 
-	// ExchangeRateBaseURL is the server and protocal part of the URL from which to load the exchange rate
+	// ExchangeRateBaseURL is the server and protocol part of the URL from which to load the exchange rate
 	ExchangeRateBaseURL string
 
 	// ExchangeRateAPIKey is the API for the exchange rate API
 	ExchangeRateAPIKey string
 
+	// environmental dependencies
 	logger logging.Logger
 }
 
-// Logger returns a reference to the signleton logger
+// Logger returns a reference to the singleton logger
 func (c *Config) Logger() logging.Logger {
 	if c.logger == nil {
 		c.logger = &logging.LoggerStdOut{}
@@ -58,11 +59,17 @@ func (c *Config) ExchangeBaseURL() string {
 	return c.ExchangeRateBaseURL
 }
 
-// ExchangeAPIKey returns the host and port this service should bind to
+// ExchangeAPIKey returns the DSN
 func (c *Config) ExchangeAPIKey() string {
 	return c.ExchangeRateAPIKey
 }
 
+// BindAddress returns the host and port this service should bind to
+func (c *Config) BindAddress() string {
+	return c.Address
+}
+
+// Load returns the config loaded from environment
 func init() {
 	filename, found := os.LookupEnv(DefaultEnvVar)
 	if !found {
@@ -83,7 +90,7 @@ func load(filename string) error {
 
 	err = json.Unmarshal(bytes, App)
 	if err != nil {
-		logging.L.Error("failed to parse config file. err: %s", err)
+		logging.L.Error("failed to parse config file. err : %s", err)
 		return err
 	}
 
