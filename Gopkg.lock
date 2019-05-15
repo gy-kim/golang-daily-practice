@@ -10,12 +10,68 @@
   version = "v1.3.3"
 
 [[projects]]
+  digest = "1:d0417ad0fc3080cba6524159a7a80f12c470f6327991a61ddcff15f0789ebe45"
+  name = "github.com/DataDog/zstd"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "809b919c325d7887bff7bd876162af73db53e878"
+  version = "v1.4.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c9b1d3d22e4b5406d5d26196124bb613be862365d457a6c96da5e5c9e840b238"
+  name = "github.com/PacktPublishing/Hands-On-Dependency-Injection-in-Go"
+  packages = ["ch06/02_advantages"]
+  pruneopts = "T"
+  revision = "40e102283025026b5c7c587e4f5b7ee352e92cad"
+
+[[projects]]
+  digest = "1:614adfe381c525fe4eee6f81bd8722ed16e4ac283a8c7cb5456bf088fbb91634"
+  name = "github.com/Shopify/sarama"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ea9ab1c316850bee881a07bb2555ee8a685cd4b6"
+  version = "v1.22.1"
+
+[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "T"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:bd6e6dc5db19ccd7c2356a86e180960f266ed12be1a58ffba88c3399ce205781"
+  name = "github.com/eapache/go-resiliency"
+  packages = ["breaker"]
+  pruneopts = "T"
+  revision = "ea41b0fad31007accc7f806884dcdf3da98b79ce"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:5b9eecdd952ee665ce94669cd1074c4fe5fb389a1095a42133ed0ad7ce1e81bd"
+  name = "github.com/eapache/go-xerial-snappy"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "776d5712da21bc4762676d614db1d8a64f4238b0"
+
+[[projects]]
+  digest = "1:444b82bfe35c83bbcaf84e310fb81a1f9ece03edfed586483c869e2c046aef69"
+  name = "github.com/eapache/queue"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:f37c069fadbaa889f79aea9cd463d225000a0d26f1e7423f14c0cd58fbc5c597"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
+  version = "v0.0.1"
 
 [[projects]]
   digest = "1:2cd5a758bcbc5bf6e904e976783cceb3bac3a53511d6fe4e459d8ac45af9e530"
@@ -26,12 +82,31 @@
   version = "v1.7.1"
 
 [[projects]]
+  digest = "1:175102bb66f231116abb378ede52a799138b26fa861a9c55edd4d0e872e74ace"
+  name = "github.com/pierrec/lz4"
+  packages = [
+    ".",
+    "internal/xxh32",
+  ]
+  pruneopts = "T"
+  revision = "d705d4371bfccdf47f10e45584e896026c83616f"
+  version = "v2.2.3"
+
+[[projects]]
   digest = "1:22aa691fe0213cb5c07d103f9effebcb7ad04bee45a0ce5fe5369d0ca2ec3a1f"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   pruneopts = "T"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4e1e0e562188a53d5301f2ce0590c1de08ec8820f508fc25cac37ea439e6a914"
+  name = "github.com/rcrowley/go-metrics"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
 
 [[projects]]
   digest = "1:8d58d88a7b2a7440509bee60f3e865773e8f79e622817ddb63ba3cda9efba25a"
@@ -53,11 +128,24 @@
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
   version = "v1.3.0"
 
+[[projects]]
+  branch = "master"
+  digest = "1:1cb0d9798dd8b62514a109c87ad49309c40ed0f7d486eb7613a8c63db60542d2"
+  name = "golang.org/x/net"
+  packages = [
+    "internal/socks",
+    "proxy",
+  ]
+  pruneopts = "T"
+  revision = "3ec19112720433827bbce8be9342797f5a6aaaf9"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/DATA-DOG/go-sqlmock",
+    "github.com/PacktPublishing/Hands-On-Dependency-Injection-in-Go/ch06/02_advantages",
+    "github.com/Shopify/sarama",
     "github.com/gorilla/mux",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
