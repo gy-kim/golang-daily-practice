@@ -74,6 +74,14 @@
   version = "v0.0.1"
 
 [[projects]]
+  digest = "1:51497dc28f5555e882e588bdc0bc7a35c512393cb2f854a39c23981dc2c59323"
+  name = "github.com/google/wire"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "a7a9b0ede2c6019fbb86a3bcdafa1661d127d7e9"
+  version = "v0.2.2"
+
+[[projects]]
   digest = "1:2cd5a758bcbc5bf6e904e976783cceb3bac3a53511d6fe4e459d8ac45af9e530"
   name = "github.com/gorilla/mux"
   packages = ["."]
@@ -146,6 +154,7 @@
     "github.com/DATA-DOG/go-sqlmock",
     "github.com/PacktPublishing/Hands-On-Dependency-Injection-in-Go/ch06/02_advantages",
     "github.com/Shopify/sarama",
+    "github.com/google/wire",
     "github.com/gorilla/mux",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
