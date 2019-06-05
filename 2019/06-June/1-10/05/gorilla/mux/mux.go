@@ -39,11 +39,11 @@ type routeConf struct {
 
 	regex routeRegexpGroup
 
-	// matchers []matcher
+	matchers []matcher
 
 	buildScheme string
 
-	// buildVarsFunc BuildVarsFunc
+	buildVarsFunc BuildVarsFunc
 }
 
 // RouteMatch stores information about a matched route.
