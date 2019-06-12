@@ -21,13 +21,3 @@ func (r *Router) Use(mwf ...MiddlewareFunc) {
 func (r *Router) useInterface(mw middleware) {
 	r.middlewares = append(r.middlewares, mw)
 }
-
-func CORSMethodMiddleware(r *Router) MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		var allMethods []string
-
-		err := r.Walk(func(route *Route, _ *Router, _ []*Route) error {
-
-		})
-	}
-}
