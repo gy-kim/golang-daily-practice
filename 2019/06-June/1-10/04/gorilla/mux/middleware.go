@@ -9,11 +9,5 @@ type middleware interface {
 }
 
 func (mw MiddlewareFunc) Middleware(handler http.Handler) http.Handler {
-	return mv(handler)
-}
-
-func (r *Route) Use(mwf ...MiddlewareFunc) {
-	for _, fn := range mwf {
-		r.middlewares = append(r.middlewares, fn)
-	}
+	return mw(handler)
 }
