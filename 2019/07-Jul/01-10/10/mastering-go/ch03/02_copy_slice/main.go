@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	a6 := []int{-10, 1, 2, 3, 4, 5}
