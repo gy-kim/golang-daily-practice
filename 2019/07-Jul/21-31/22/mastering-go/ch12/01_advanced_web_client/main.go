@@ -66,5 +66,4 @@ func main() {
 		length = length + n
 	}
 	fmt.Println("Calculated respose data length:", length)
-
 }
