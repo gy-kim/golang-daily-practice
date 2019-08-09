@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/gy-kim/golang-daily-practice/2019/08-Aug/01-10/08/hands-on-dependency-injection-in-go/ch04/acme/internal/logging"
+	"github.com/gy-kim/golang-daily-practice/2019/08-Aug/01-10/08-09/hands-on-dependency-injection-in-go/ch04/acme/internal/logging"
 )
 
 const DefaultEnvVar = "ACME_CONFIG"
