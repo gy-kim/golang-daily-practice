@@ -2,9 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"golang-daily-practice/2019/08-Aug/21-31/26-31/hands-on-dependency-injection-in-go/ch09/acme/internal/logging"
 	"io/ioutil"
 	"os"
+
+	"github.com/gy-kim/golang-daily-practice/2019/08-Aug/21-31/26-31/hands-on-dependency-injection-in-go/ch09/acme/internal/logging"
 )
 
 // DefaultEnvVar is the defalt environment variable the points to the config file

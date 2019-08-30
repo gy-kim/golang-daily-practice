@@ -13,6 +13,13 @@ var (
 	errPersonNotFound = errors.New("person not found")
 )
 
+// NewGetter creates and initialize a Getter
+func NewGetter(cfg Config) *Getter {
+	return &Getter{
+		cfg: cfg,
+	}
+}
+
 // Config is the configuration for Getter
 type Config interface {
 	Logger() logging.Logger
