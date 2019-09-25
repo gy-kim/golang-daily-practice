@@ -8,5 +8,6 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/pkg/profile v1.3.0
 	github.com/stretchr/testify v1.4.0
+	golang.org/x/tools/gopls v0.1.7 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 )
