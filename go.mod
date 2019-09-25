@@ -11,3 +11,5 @@ require (
 	golang.org/x/tools/gopls v0.1.7 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 )
+
+go 1.13
