@@ -10,8 +10,10 @@ require (
 	github.com/pkg/profile v1.3.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/stretchr/testify v1.4.0
+	github.com/ugorji/go/codec v1.1.7
 	golang.org/x/tools/gopls v0.1.7 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
+	gopkg.in/yaml.v2 v2.2.4
 )
 
 go 1.13
