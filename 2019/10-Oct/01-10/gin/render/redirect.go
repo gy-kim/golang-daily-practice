@@ -13,7 +13,7 @@ type Redirect struct {
 }
 
 // Render (Redirect) redirects the http request to new location and writes redirect response.
-func (r *Redirect) Render(w http.ResponseWriter) error {
+func (r Redirect) Render(w http.ResponseWriter) error {
 	if (r.Code < http.StatusMultipleChoices || r.Code > http.StatusPermanentRedirect) && r.Code != http.StatusCreated {
 		panic(fmt.Sprintf("Cannot redirect with status code %d", r.Code))
 	}
@@ -22,4 +22,4 @@ func (r *Redirect) Render(w http.ResponseWriter) error {
 }
 
 // WriteContentType (Redirect) don't write any ContentType.
-func (r *Redirect) WriteContentType(http.ResponseWriter) {}
+func (r Redirect) WriteContentType(http.ResponseWriter) {}

@@ -6,6 +6,7 @@ require (
 	github.com/Shopify/sarama v1.23.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/pkg/profile v1.3.0
 	github.com/pmezard/go-difflib v1.0.0
