@@ -2,6 +2,7 @@ package logrus
 
 import (
 	"io"
+	"os"
 	"sync"
 )
 
@@ -18,23 +19,34 @@ type Logger struct {
 
 type exitFunc func(int)
 
-type MutexWap struct {
+type MutexWrap struct {
 	lock     sync.Mutex
 	disabled bool
 }
 
-func (mw *MutexWap) Lock() {
+func (mw *MutexWrap) Lock() {
 	if !mw.disabled {
 		mw.lock.Lock()
 	}
 }
 
-func (mw *MutexWap) Unlock() {
+func (mw *MutexWrap) Unlock() {
 	if !mw.disabled {
 		mw.lock.Unlock()
 	}
 }
 
-func (mw *MutexWap) Disable() {
+func (mw *MutexWrap) Disable() {
 	mw.disabled = true
+}
+
+func New() *Logger {
+	return &Logger{
+		Out:          os.Stderr,
+		Formatter:    new(TextFormatter),
+		Hooks:        make(LevelHooks),
+		Level:        InfoLevel,
+		ExitFunc:     os.Exit,
+		ReportCaller: false,
+	}
 }
