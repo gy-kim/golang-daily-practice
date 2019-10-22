@@ -9,7 +9,7 @@ const (
 	FieldKeyTime           = "time"
 	FieldKeyLogrusError    = "logrus_error"
 	FieldKeyFunc           = "func"
-	fieldKeyFile           = "file"
+	FieldKeyFile           = "file"
 )
 
 // Formatter interface is used to implement a custom Formatter.
@@ -47,7 +47,7 @@ func prefixFieldCashes(data Fields, fieldMap FieldMap, reportCaller bool) {
 		if l, ok := data[funcKey]; ok {
 			data["fields."+funcKey] = l
 		}
-		fileKey := fieldMap.resolve(fieldKeyFile)
+		fileKey := fieldMap.resolve(FieldKeyFile)
 		if l, ok := data[fileKey]; ok {
 			data["fields."+fileKey] = l
 		}

@@ -12,6 +12,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/stretchr/testify v1.4.0
 	github.com/ugorji/go/codec v1.1.7
+	golang.org/x/sys v0.0.0-20190606165138-5da285871e9c
 	golang.org/x/tools/gopls v0.1.7 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/yaml.v2 v2.2.4
