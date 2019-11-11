@@ -48,3 +48,18 @@ func New(options ...func(*sqlmock) error) (*sql.DB, Sqlmock, error) {
 
 	return smock.open(options)
 }
+
+// NewWithDSN creates sqlmock database connection with a specific DSN
+// and a mock to manage expectations.
+func NewWithDSN(dsn string, options ...func(*sqlmock) error) (*sql.DB, Sqlmock, error) {
+	pool.Lock()
+	if _, ok := pool.conns[dsn]; ok {
+		pool.Unlock()
+		return nil, nil, fmt.Errorf("cannot create a new mock database with same dsn: %s", dsn)
+	}
+	smock := &sqlmock{dsn: dsn, drv: pool, ordered: true}
+	pool.conns[dsn] = smock
+	pool.Unlock()
+
+	return smock.open(options)
+}

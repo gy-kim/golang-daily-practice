@@ -263,6 +263,64 @@ type ExpectedPrepare struct {
 	delay        time.Duration
 }
 
+// WillReturnError allows to set an error for the expected *sql.Prepare or *sql.Tx.Prepare action.
+func (e *ExpectedPrepare) WillReturnError(err error) *ExpectedPrepare {
+	e.err = err
+	return e
+}
+
+// WillReturnCloseError allows to set an error for this prepared statement Close action.
+func (e *ExpectedPrepare) WillReturnCloseError(err error) *ExpectedPrepare {
+	e.closeErr = err
+	return e
+}
+
+// WillDelayFor allows to specify duration for which it will delay result.
+// May be used together with Context
+func (e *ExpectedPrepare) WillDelayFor(duration time.Duration) *ExpectedPrepare {
+	e.delay = duration
+	return e
+}
+
+// WillBeClosed expects this prepared statement to be closed.
+func (e *ExpectedPrepare) WillBeClosed() *ExpectedPrepare {
+	e.mustBeClosed = true
+	return e
+}
+
+// ExpectQuery allows to expect Query() or QueryRow() on this prepared statement.
+func (e *ExpectedPrepare) ExpectQuery() *ExpectedQuery {
+	eq := &ExpectedQuery{}
+	eq.expectSQL = e.expectSQL
+	eq.converter = e.mock.converter
+	return eq
+}
+
+// ExpectExec allows to expect Exec() on this prepared statement.
+func (e *ExpectedPrepare) ExpectExec() *ExpectedExec {
+	eq := &ExpectedExec{}
+	eq.expectSQL = e.expectSQL
+	eq.converter = e.mock.converter
+	e.mock.expected = append(e.mock.expected, eq)
+	return eq
+}
+
+// String returns string representation
+func (e *ExpectedPrepare) String() string {
+	msg := "ExpectedPrepare => expecting Prepare statement which:"
+	msg += "\n - matches sql: '" + e.expectSQL + "'"
+
+	if e.err != nil {
+		msg += fmt.Sprintf("\n - should return error: %s", e.err)
+	}
+
+	if e.closeErr != nil {
+		msg += fmt.Sprintf("\n - should return error on Close: %s", e.closeErr)
+	}
+
+	return msg
+}
+
 // query based expectation
 // adds a query matching logic
 type queryBasedException struct {
