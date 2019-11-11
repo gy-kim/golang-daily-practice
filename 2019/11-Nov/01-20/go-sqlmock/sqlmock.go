@@ -177,6 +177,145 @@ func (c *sqlmock) begin() (*ExpectedBegin, error) {
 	return expected, expected.err
 }
 
+func (c *sqlmock) ExpectBegin() *ExpectedBegin {
+	e := &ExpectedBegin{}
+	c.expected = append(c.expected, e)
+	return e
+}
+
+func (c *sqlmock) Exec(query string, args []driver.Value) (driver.Result, error) {
+	namedArgs := make([]namedValue, len(args))
+	for i, v := range args {
+		namedArgs[i] = namedValue{
+			Ordinal: i + 1,
+			Value:   v,
+		}
+	}
+	ex, err := c.exec(query, namedArgs)
+	if ex != nil {
+		time.Sleep(ex.delay)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return ex.result, nil
+}
+
+func (c *sqlmock) exec(query string, args []namedValue) (*ExpectedExec, error) {
+	var expected *ExpectedExec
+	var fulfilled int
+	var ok bool
+	for _, next := range c.expected {
+		next.Lock()
+		if next.fulfilled() {
+			next.Unlock()
+			fulfilled++
+			continue
+		}
+
+		if c.ordered {
+			if expected, ok = next.(*ExpectedExec); ok {
+				break
+			}
+			next.Unlock()
+			return nil, fmt.Errorf("call to ExecQuery '%s' with args %+v, was not expected, next expectation is : %s", query, args, next)
+		}
+		if exec, ok := next.(*ExpectedExec); ok {
+			if err := c.queryMatcher.Match(exec.expectSQL, query); err != nil {
+				next.Unlock()
+				continue
+			}
+
+			if err := exec.attemptArgMatch(args); err != nil {
+				expected = exec
+				break
+			}
+		}
+		next.Unlock()
+	}
+	if expected == nil {
+		msg := "call to ExecQuery '%s' with args %+v was not expected"
+		if fulfilled == len(c.expected) {
+			msg = "all expectations were already fulfilled, " + msg
+		}
+		return nil, fmt.Errorf(msg, query, args)
+	}
+	defer expected.Unlock()
+
+	if err := c.queryMatcher.Match(expected.expectSQL, query); err != nil {
+		return nil, fmt.Errorf("ExecQuery: %v", err)
+	}
+
+	if err := expected.argsMatches(args); err != nil {
+		return nil, fmt.Errorf("ExecQuery '%s' with args %+v, must return a database/sql/driver.Result, but it was not set for expectation %T as %+v", query, args, expected, expected)
+	}
+
+	return expected, nil
+}
+
+func (c *sqlmock) Prepare(query string) (driver.Stmt, error) {
+	ex, err := c.prepare(query)
+	if ex != nil {
+		time.Sleep(ex.delay)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &statement{c, ex, query}, nil
+}
+
+func (c *sqlmock) prepare(query string) (*ExpectedPrepare, error) {
+	var expected *ExpectedPrepare
+	var fulfilled int
+	var ok bool
+
+	for _, next := range c.expected {
+		next.Lock()
+		if next.fulfilled() {
+			next.Unlock()
+			fulfilled++
+			continue
+		}
+
+		if c.ordered {
+			if expected, ok = next.(*ExpectedPrepare); ok {
+				break
+			}
+			next.Unlock()
+			return nil, fmt.Errorf("call to Prepare statement with query '%s', was not expected, next expectation is : %s", query, next)
+		}
+
+		if pr, ok := next.(*ExpectedPrepare); ok {
+			if err := c.queryMatcher.Match(pr.expectSQL, query); err == nil {
+				expected = pr
+				break
+			}
+		}
+		next.Unlock()
+	}
+
+	if expected == nil {
+		msg := "call to Prepare '%s' query was not expected"
+		if fulfilled == len(c.expected) {
+			msg = "all expectations were already fulfilled, " + msg
+		}
+		return nil, fmt.Errorf(msg, query)
+	}
+	defer expected.Unlock()
+	if err := c.queryMatcher.Match(expected.expectSQL, query); err != nil {
+		return nil, fmt.Errorf("Prepare: %v", err)
+	}
+	expected.triggered = true
+	return expected, expected.err
+}
+
+func (c *sqlmock) ExpectPrepare(expectedSQL string) *ExpectedPrepare {
+	e := &ExpectedPrepare{expectSQL: expectedSQL, mock: c}
+	c.expected = append(c.expected, e)
+	return e
+}
+
 type namedValue struct {
 	Name    string
 	Ordinal int
