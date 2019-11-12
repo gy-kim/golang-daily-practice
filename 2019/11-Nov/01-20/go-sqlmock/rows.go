@@ -2,6 +2,7 @@ package sqlmock
 
 import (
 	"database/sql/driver"
+	"io"
 	"strings"
 )
 
@@ -15,6 +16,42 @@ var CSVColumnParser = func(s string) []byte {
 		return nil
 	}
 	return []byte(s)
+}
+
+type rowSets struct {
+	sets []*Rows
+	pos  int
+	ex   *ExpectedQuery
+	raw  [][]byte
+}
+
+func (rs *rowSets) Columns() []string {
+	return rs.sets[rs.pos].cols
+}
+
+func (rs *rowSets) Close() error {
+	rs.invalidateRaw()
+	rs.ex.rowsWereClosed = true
+	return rs.sets[rs.pos].closeErr
+}
+
+func (rs *rowSets) Next(dest []driver.Value) error {
+	r := rs.sets[rs.pos]
+	r.pos++
+	rs.invalidateRaw()
+	if r.pos > len(r.rows) {
+		return io.EOF
+	}
+
+	for i, col := range r.rows[r.pos-1] {
+		if b, ok := rawBytes(col); ok {
+			rs.raw = append(rs.raw, b)
+			dest[i] = b
+			continue
+		}
+		dest[i] = col
+	}
+	return r.nextErr[r.pos-1]
 }
 
 // Rows is a mocked collection of rows to return for Query result
