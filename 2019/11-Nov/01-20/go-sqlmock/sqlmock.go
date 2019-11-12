@@ -105,14 +105,14 @@ func (c *sqlmock) Close() error {
 	return expected.err
 }
 
-func (c *sqlmock) ExpectationWereMet() error {
+func (c *sqlmock) ExpectationsWereMet() error {
 	for _, e := range c.expected {
 		e.Lock()
 		fulfilled := e.fulfilled()
 		e.Unlock()
 
 		if !fulfilled {
-			return fmt.Errorf("there is a remaining expectation which was not matched: %", e)
+			return fmt.Errorf("there is a remaining expectation which was not matched: %s", e)
 		}
 
 		// for expected prepared statement chek whether it was closed if expected.
@@ -453,4 +453,43 @@ func (c *sqlmock) Commit() error {
 	expected.triggered = true
 	expected.Unlock()
 	return expected.err
+}
+
+func (c *sqlmock) Rollback() error {
+	var expected *ExpectedRollback
+	var fulfilled int
+	var ok bool
+	for _, next := range c.expected {
+		next.Lock()
+		if next.fulfilled() {
+			next.Unlock()
+			fulfilled++
+			continue
+		}
+
+		if expected, ok = next.(*ExpectedRollback); ok {
+			break
+		}
+
+		next.Unlock()
+		if c.ordered {
+			return fmt.Errorf("call to Rollback transaction, was not expected, next expectation is: %s", next)
+		}
+	}
+	if expected == nil {
+		msg := "call to Rollback transaction was not expected"
+		if fulfilled == len(c.expected) {
+			msg = "all expectations were already fulfilled, " + msg
+		}
+		return fmt.Errorf(msg)
+	}
+	expected.triggered = true
+	expected.Unlock()
+	return expected.err
+}
+
+func (c *sqlmock) NewRows(columns []string) *Rows {
+	r := NewRows(columns)
+	r.converter = c.converter
+	return r
 }
