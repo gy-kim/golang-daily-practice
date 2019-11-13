@@ -17,6 +17,32 @@ type Sqlmock interface {
 	// ExpectationWereMet checks whether all queued expectations
 	// were met in order. If any of them was not met - an error is returned.
 	ExpectationsWereMet() error
+
+	// ExpectPrepare expects Prepare() to be called with expectedSQL query.
+	ExpectPrepare(expectedSQL string) *ExpectedPrepare
+
+	// ExpectQuery expects Query() or QuertRow() to be called with expected query.
+	ExpectQuery(expectedSQL string) *ExpectedQuery
+
+	// ExpectExec expects Exec() to be called with expectedSQL query.
+	ExpectExec(expectedSQL string) *ExpectedExec
+
+	// ExpectBegin expects *sql.DB.Begin to be called.
+	ExpectBegin() *ExpectedBegin
+
+	// ExpectCommit expects *sql.Tx.Commit to be called.
+	ExpectCommit() *ExpectedCommit
+
+	// ExpectRollback expects *sql.Tx.Rollback to be called.
+	ExpectRollback() *ExpectedRollback
+
+	// MatchExpectationsInOrder gives an option whether to match all
+	// expectations in the order they were set or not.
+	MatchExpectationsInOrder(bool)
+
+	// NewRows allows Rows to be created from a sql driver.Value slice or from the CSV string
+	// and to  be used sql driver.Rows.
+	NewRows(columns []string) *Rows
 }
 
 type sqlmock struct {
@@ -252,6 +278,14 @@ func (c *sqlmock) exec(query string, args []namedValue) (*ExpectedExec, error) {
 	}
 
 	return expected, nil
+}
+
+func (c *sqlmock) ExpectExec(expectedSQL string) *ExpectedExec {
+	e := &ExpectedExec{}
+	e.expectSQL = expectedSQL
+	e.converter = c.converter
+	c.expected = append(c.expected, e)
+	return e
 }
 
 func (c *sqlmock) Prepare(query string) (driver.Stmt, error) {

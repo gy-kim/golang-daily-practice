@@ -125,7 +125,7 @@ func (e *ExpectedRollback) String() string {
 // ExpectedQuery is used to manage *sql.DB.Query, *sql.DB.QueryRow, *sql.Tx.Query,
 // *sql.Tx.QueryRow, *sql.Stmt.Query or *sql.Stmt.QueryRow expectations.
 type ExpectedQuery struct {
-	queryBasedException
+	queryBasedExpectation
 	rows             driver.Rows
 	delay            time.Duration
 	rowsMustBeClosed bool
@@ -183,10 +183,20 @@ func (e *ExpectedQuery) String() string {
 	return msg
 }
 
+// WillReturnRows specifies the set of resulting rows that will be returned
+func (e *ExpectedQuery) WillReturnRows(rows ...*Rows) *ExpectedQuery {
+	sets := make([]*Rows, len(rows))
+	for i, r := range rows {
+		sets[i] = r
+	}
+	e.rows = &rowSets{sets: sets, ex: e}
+	return e
+}
+
 // ExpectedExec is used to manage *sql.DB.Exec, *sql.Tx.Exec or *sql.Stmt.Exec expectations.
 // Returned by *Sqlmock.ExpectExec.
 type ExpectedExec struct {
-	queryBasedException
+	queryBasedExpectation
 	result driver.Result
 	delay  time.Duration
 }
@@ -323,14 +333,14 @@ func (e *ExpectedPrepare) String() string {
 
 // query based expectation
 // adds a query matching logic
-type queryBasedException struct {
+type queryBasedExpectation struct {
 	commonExpectation
 	expectSQL string
 	converter driver.ValueConverter
 	args      []driver.Value
 }
 
-func (e *queryBasedException) attemptArgMatch(args []namedValue) (err error) {
+func (e *queryBasedExpectation) attemptArgMatch(args []namedValue) (err error) {
 	// catch panic
 	defer func() {
 		if e := recover(); e != nil {
@@ -345,7 +355,7 @@ func (e *queryBasedException) attemptArgMatch(args []namedValue) (err error) {
 	return
 }
 
-func (e *queryBasedException) argsMatches(args []namedValue) error {
+func (e *queryBasedExpectation) argsMatches(args []namedValue) error {
 	if nil == e.args {
 		return nil
 	}

@@ -1,7 +1,10 @@
 package sqlmock
 
 import (
+	"bytes"
 	"database/sql/driver"
+	"encoding/csv"
+	"fmt"
 	"io"
 	"strings"
 )
@@ -54,6 +57,55 @@ func (rs *rowSets) Next(dest []driver.Value) error {
 	return r.nextErr[r.pos-1]
 }
 
+func (rs *rowSets) String() string {
+	if rs.empty() {
+		return "with empty rows"
+	}
+
+	msg := "should return rows:\n"
+	if len(rs.sets) == 1 {
+		for n, row := range rs.sets[0].rows {
+			msg += fmt.Sprintf("    row %d - %+v\n", n, row)
+		}
+		return strings.TrimSpace(msg)
+	}
+	for i, set := range rs.sets {
+		msg += fmt.Sprintf("	result set: %d\n", i)
+		for n, row := range set.rows {
+			msg += fmt.Sprintf("	row %d - %+v\n", n, row)
+		}
+	}
+	return strings.TrimSpace(msg)
+}
+
+func (rs *rowSets) empty() bool {
+	for _, set := range rs.sets {
+		if len(set.rows) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func rawBytes(col driver.Value) (_ []byte, ok bool) {
+	val, ok := col.([]byte)
+	if !ok || len(val) == 0 {
+		return nil, false
+	}
+
+	b := make([]byte, len(val))
+	copy(b, val)
+	return b, true
+}
+
+func (rs *rowSets) invalidateRaw() {
+	b := []byte(invalidate)
+	for _, r := range rs.raw {
+		copy(r, bytes.Repeat(b, len(r)/len(b)+1))
+	}
+	rs.raw = nil
+}
+
 // Rows is a mocked collection of rows to return for Query result
 type Rows struct {
 	converter driver.ValueConverter
@@ -72,4 +124,59 @@ func NewRows(columns []string) *Rows {
 		nextErr:   make(map[int]error),
 		converter: driver.DefaultParameterConverter,
 	}
+}
+
+// CloseError allows to set an error which will be returned by rows.Close function.
+func (r *Rows) CloseError(err error) *Rows {
+	r.closeErr = err
+	return r
+}
+
+// RowError allows to set an error which will be returnd when a given row number is read
+func (r *Rows) RowError(row int, err error) *Rows {
+	r.nextErr[row] = err
+	return r
+}
+
+// AddRow composed from database driver.Value slice return the same instance to perform usbsequent actions.
+// Note that the number of values must match the number of columns
+func (r *Rows) AddRow(values ...driver.Value) *Rows {
+	if len(values) != len(r.cols) {
+		panic("Expected number of values to match number of columns")
+	}
+	row := make([]driver.Value, len(r.cols))
+	for i, v := range values {
+		var err error
+		v, err = r.converter.ConvertValue(v)
+		if err != nil {
+			panic(fmt.Errorf(
+				"row #%d, column #%d (%q) type %T: %s",
+				len(r.rows)+1, i, r.cols[i], values[i], err,
+			))
+		}
+
+		row[i] = v
+	}
+	r.rows = append(r.rows, row)
+	return r
+}
+
+// FromCSVString build rows from csv string.
+func (r *Rows) FromCSVString(s string) *Rows {
+	res := strings.NewReader(strings.TrimSpace(s))
+	csvReader := csv.NewReader(res)
+
+	for {
+		res, err := csvReader.Read()
+		if err != nil || res == nil {
+			break
+		}
+
+		row := make([]driver.Value, len(r.cols))
+		for i, v := range res {
+			row[i] = CSVColumnParser(strings.TrimSpace(v))
+		}
+		r.rows = append(r.rows, row)
+	}
+	return r
 }
