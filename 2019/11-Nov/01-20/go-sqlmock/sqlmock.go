@@ -71,7 +71,7 @@ func (c *sqlmock) open(options []func(*sqlmock) error) (*sql.DB, Sqlmock, error)
 		c.converter = driver.DefaultParameterConverter
 	}
 	if c.queryMatcher == nil {
-		c.queryMatcher = QueryMatcherRegex
+		c.queryMatcher = QueryMatcherRegexp
 	}
 	return db, c, db.Ping()
 }

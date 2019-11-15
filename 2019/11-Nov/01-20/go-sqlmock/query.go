@@ -30,10 +30,10 @@ func (f QueryMatcherFunc) Match(expectedSQL, actualSQL string) error {
 	return f(expectedSQL, actualSQL)
 }
 
-// QueryMatcherRegex is the default SQL querymatcher
+// QueryMatcherRegexp is the default SQL querymatcher
 // used by sqlmock. It parses expectedSQL to a regular
 // expression and attempts to match actualSQL
-var QueryMatcherRegex QueryMatcher = QueryMatcherFunc(func(expectedSQL, actualSQL string) error {
+var QueryMatcherRegexp QueryMatcher = QueryMatcherFunc(func(expectedSQL, actualSQL string) error {
 	expect := stripQuery(expectedSQL)
 	actual := stripQuery(actualSQL)
 	re, err := regexp.Compile(expect)

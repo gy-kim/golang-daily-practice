@@ -95,3 +95,36 @@ func TestTwoOpenConnectionsOnTheSameDSN(t *testing.T) {
 		t.Errorf("expected not the same mock instance, but it is the same")
 	}
 }
+
+func TestWithOptions(t *testing.T) {
+	c := &converter{}
+	_, mock, err := New(ValueConverterOption(c))
+	if err != nil {
+		t.Errorf("expected no error, but got: %s", err)
+	}
+	smock, _ := mock.(*sqlmock)
+	if smock.converter.(*converter) != c {
+		t.Errorf("expected a custom converter to be set")
+	}
+}
+
+func TestWrongDSN(t *testing.T) {
+	t.Parallel()
+	db, _, _ := New()
+	defer db.Close()
+	if _, err := db.Driver().Open("wrong_dsn"); err == nil {
+		t.Errorf("expected no error no NewWithDSN, but got: %s", err)
+	}
+}
+
+func TestNewDSN(t *testing.T) {
+	if _, _, err := NewWithDSN("sqlmock_db_99"); err != nil {
+		t.Errorf("expected no error on NewWithDSN, but got: %s", err)
+	}
+}
+
+func TestDuplicateNewDSN(t *testing.T) {
+	if _, _, err := NewWithDSN("sqlmock_db_1"); err == nil {
+		t.Errorf("expected error on NewWithDSN")
+	}
+}
