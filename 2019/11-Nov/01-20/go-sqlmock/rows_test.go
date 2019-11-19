@@ -1,8 +1,10 @@
 package sqlmock
 
-import "fmt"
-
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+	"testing"
+)
 
 const invalid = `☠☠☠ MEMORY OVERWRITTEN ☠☠☠ `
 
@@ -161,5 +163,118 @@ func ExampleRows_customDriverValue() {
 
 	if rs.Err() != nil {
 		fmt.Println("got rows error:", rs.Err())
+	}
+}
+
+func TestAllowsToSeetRowsErrors(t *testing.T) {
+	t.Parallel()
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := NewRows([]string{"id", "title"}).
+		AddRow(0, "one").
+		AddRow(1, "two").
+		RowError(1, fmt.Errorf("error"))
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer rs.Close()
+
+	if !rs.Next() {
+		t.Fatal("expected the first row to be available")
+	}
+	if rs.Err() != nil {
+		t.Fatalf("unexpected error: %s", rs.Err())
+	}
+	if rs.Next() {
+		t.Fatal("was not expecting the second row, since there should be an error")
+	}
+	if rs.Err() == nil {
+		t.Fatal("expected an error, but got none")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRowsCloseError(t *testing.T) {
+	t.Parallel()
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := NewRows([]string{"id"}).CloseError(fmt.Errorf("close error"))
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if err := rs.Close(); err == nil {
+		t.Fatal("expected a close error")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRowsClosed(t *testing.T) {
+	t.Parallel()
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT").WillReturnRows(rows).RowsWillBeClosed()
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if err := rs.Close(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQuerySingleRow(t *testing.T) {
+	t.Parallel()
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := NewRows([]string{"id"}).
+		AddRow(1).
+		AddRow(2)
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	var id int
+	if err := db.QueryRow("SELECT").Scan(&id); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	mock.ExpectQuery("SELECT").WillReturnRows(NewRows([]string{"id"}))
+	if err := db.QueryRow("SELECT").Scan(&id); err != sql.ErrNoRows {
+		t.Fatal(err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
