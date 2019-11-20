@@ -300,6 +300,50 @@ func TestQueryRowBytesInvalidatedByNext_bytesIntoRawBytes(t *testing.T) {
 	queryRowBytesInvalidatedByNext(t, rows, scan, want)
 }
 
+func TestQueryRowBytesNotInvalidatedByNext_bytesIntoBytes(t *testing.T) {
+	t.Parallel()
+	rows := NewRows([]string{"raw"}).
+		AddRow([]byte(`one binary value with some text!`)).
+		AddRow([]byte(`two binary value with some more text than the first one`))
+	scan := func(rs *sql.Rows) ([]byte, error) {
+		var b []byte
+		return b, rs.Scan(&b)
+	}
+	want := [][]byte{[]byte(`one binary value with some text!`), []byte(`two binary value with even more text than the first one`)}
+	queryRowBytesNotInvalidatedByNext(t, rows, scan, want)
+}
+
+func TestQueryRowBytesNotInvalidatedByNext_stringIntoBytes(t *testing.T) {
+	t.Parallel()
+	rows := NewRows([]string{"raw"}).
+		AddRow(`one binary value with some text!`).
+		AddRow(`two binary value with some error text than the first one`)
+	scan := func(rs *sql.Rows) ([]byte, error) {
+		var b []byte
+		return b, rs.Scan(&b)
+	}
+	want := [][]byte{[]byte(`one binary value with some text!`), []byte(`two binary value with even more text than the first one`)}
+	queryRowBytesNotInvalidatedByNext(t, rows, scan, want)
+}
+
+func TestQueryRowBytesInvalidatedByClose_bytesIntoRawBytes(t *testing.T) {
+	t.Parallel()
+	replace := []byte(invalid)
+	rows := NewRows([]string{"raw"}).AddRow(`one binary value with some text!`)
+	scan := func(rs *sql.Rows) ([]byte, error) {
+		var raw sql.RawBytes
+		return raw, rs.Scan(&raw)
+	}
+	want := struct {
+		Initial  []byte
+		Replaced []byte
+	}{
+		Initial:  []byte(`one binary value with some text!`),
+		Replaced: replace[:len(replace)-7],
+	}
+	queryRowBytesInvalidatedByClose(t, rows, scan, want)
+}
+
 func queryRowBytesInvalidatedByNext(t *testing.T, rows *Rows, scan func(*sql.Rows) ([]byte, error), want []struct {
 	Initial  []byte
 	Replaced []byte
