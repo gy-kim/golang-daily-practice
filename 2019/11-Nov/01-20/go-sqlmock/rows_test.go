@@ -1,6 +1,7 @@
 package sqlmock
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -273,6 +274,194 @@ func TestQuerySingleRow(t *testing.T) {
 	mock.ExpectQuery("SELECT").WillReturnRows(NewRows([]string{"id"}))
 	if err := db.QueryRow("SELECT").Scan(&id); err != sql.ErrNoRows {
 		t.Fatal(err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQueryRowBytesInvalidatedByNext_bytesIntoRawBytes(t *testing.T) {
+	t.Parallel()
+	replace := []byte(invalid)
+	rows := NewRows([]string{"raw"}).
+		AddRow([]byte(`one binary value with some text!`)).
+		AddRow([]byte(`two binary value with even more text than the first one`))
+	scan := func(rs *sql.Rows) ([]byte, error) {
+		var raw sql.RawBytes
+		return raw, rs.Scan(&raw)
+	}
+	want := []struct {
+		Initial  []byte
+		Replaced []byte
+	}{
+		{Initial: []byte(`one binary value with some text!`), Replaced: replace[:len(replace)-7]},
+		{Initial: []byte(`two binary value with even more text than the first one`), Replaced: bytes.Join([][]byte{replace, replace[:len(replace)-23]}, nil)},
+	}
+	queryRowBytesInvalidatedByNext(t, rows, scan, want)
+}
+
+func queryRowBytesInvalidatedByNext(t *testing.T, rows *Rows, scan func(*sql.Rows) ([]byte, error), want []struct {
+	Initial  []byte
+	Replaced []byte
+}) {
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("failed to query rows: %s", err)
+	}
+
+	if !rs.Next() || rs.Err() != nil {
+		t.Fatal("unexpected error on first row retrieval")
+	}
+	var count int
+	for i := 0; ; i++ {
+		count++
+		b, err := scan(rs)
+		if err != nil {
+			t.Fatalf("unexpected error scanning row: %s", err)
+		}
+		if exp := want[i].Initial; !bytes.Equal(b, exp) {
+			t.Fatalf("expected raw value to be '%s' (len:%d), but got [%T]:%s (len:%d)", exp, len(exp), b, b, len(b))
+		}
+		next := rs.Next()
+		if exp := want[i].Replaced; !bytes.Equal(b, exp) {
+			t.Fatalf("expexlcted raw value to be replaced with '%s' (len:%d) after calling Next(), but got [%T]:%s (len:%d)", exp, len(exp), b, b, len(b))
+		}
+		if !next {
+			break
+		}
+	}
+	if err := rs.Err(); err != nil {
+		t.Fatalf("row interation failed: %s", err)
+	}
+	if exp := len(want); count != exp {
+		t.Fatalf("incorrect number of rows exp: %d, but got %d", exp, count)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func queryRowBytesNotInvalidatedByNext(t *testing.T, rows *Rows, scan func(*sql.Rows) ([]byte, error), want [][]byte) {
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("failed to query rows: %s", err)
+	}
+
+	if !rs.Next() || rs.Err() != nil {
+		t.Fatal("unexpected error on first row retrieval")
+	}
+	var count int
+	for i := 0; ; i++ {
+		count++
+		b, err := scan(rs)
+		if err != nil {
+			t.Fatalf("unexpected error scanning row: %s", err)
+		}
+		if exp := want[i]; !bytes.Equal(b, exp) {
+			t.Fatalf("expected raw value to be replaced with '%s' (len:%d) after calling Next(), but got [%T]:%s (len:%d)", exp, len(exp), b, b, len(b))
+		}
+		next := rs.Next()
+		if exp := want[i]; !bytes.Equal(b, exp) {
+			t.Fatalf("expected raw value to be replaced with '%s' (len:%d) after calling Next(), but got [%T]:%s (len:%d)", exp, len(exp), b, b, len(b))
+		}
+		if !next {
+			break
+		}
+	}
+	if err := rs.Err(); err != nil {
+		t.Fatalf("row interation failed: %s", err)
+	}
+	if exp := len(want); count != exp {
+		t.Fatalf("incorrect number of rows exp: %d, but got %d", exp, count)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func queryRowBytesInvalidatedByClose(t *testing.T, rows *Rows, scan func(*sql.Rows) ([]byte, error), want struct {
+	Initial  []byte
+	Replaced []byte
+}) {
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("failed to query rows: %s", err)
+	}
+
+	if !rs.Next() || rs.Err() != nil {
+		t.Fatal("unexpected error on first row retrieval")
+	}
+	b, err := scan(rs)
+	if err != nil {
+		t.Fatalf("unexpected error scanning row: %s", err)
+	}
+	if !bytes.Equal(b, want.Initial) {
+		t.Fatalf("expected raw value to be '%s' (len:%d), but got [%T]:%s (len:%d)", want.Initial, len(want.Initial), b, b, len(b))
+	}
+	if err := rs.Close(); err != nil {
+		t.Fatalf("expected raw value to be replaced with '%s' (len:%d) after calling Next(), but got [%T]:%s (len:%d)", want.Replaced, len(want.Replaced), b, b, len(b))
+	}
+	if err := rs.Err(); err != nil {
+		t.Fatalf("row iteration failed: %s", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func queryRowBytesNotInvalidatedByClose(t *testing.T, rows *Rows, scan func(*sql.Rows) ([]byte, error), want []byte) {
+	db, mock, err := New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	rs, err := db.Query("SELECT")
+	if err != nil {
+		t.Fatalf("failed to query rows: %s", err)
+	}
+
+	if !rs.Next() || rs.Err() != nil {
+		t.Fatal("unexpected error on first row retrieval")
+	}
+	b, err := scan(rs)
+	if err != nil {
+		t.Fatalf("unexpected error scanning row: %s", err)
+	}
+	if !bytes.Equal(b, want) {
+		t.Fatalf("expected raw value to be '%s' (len:%d), but got [%T]:%s (len:%d)", want, len(want), b, b, len(b))
+	}
+	if err := rs.Close(); err != nil {
+		t.Fatalf("unexpected error closing rows: %s", err)
+	}
+	if !bytes.Equal(b, want) {
+		t.Fatalf("expected raw value to be replaced with '%s' (len:%d) after calling Next(), but got [%T]:%s (len:%d)", want, len(want), b, b, len(b))
+	}
+	if err := rs.Err(); err != nil {
+		t.Fatalf("row interation failed: %s", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
