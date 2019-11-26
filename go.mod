@@ -15,6 +15,7 @@ require (
 	golang.org/x/sys v0.0.0-20190606165138-5da285871e9c
 	golang.org/x/tools/gopls v0.1.7 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
+	gopkg.in/go-playground/validator.v8 v8.18.2
 	gopkg.in/yaml.v2 v2.2.4
 )
 
