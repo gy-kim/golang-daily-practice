@@ -49,6 +49,8 @@ var (
 	JSON          = jsonBinding{}
 	XML           = xmlBinding{}
 	Form          = formBinding{}
+	Query         = queryBinding{}
+	FormPost      = formPostBinding{}
 	FormMultipart = formMultipartBinding{}
 	ProtoBuf      = protobufBinding{}
 	MsgPack       = msgpackBinding{}
