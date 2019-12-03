@@ -2,7 +2,10 @@ package validator
 
 import (
 	"reflect"
+	"sync"
 	"time"
+
+	ut "github.com/go-playground/universal-translator"
 )
 
 const (
@@ -51,4 +54,20 @@ type TagNameFunc func(field reflect.StructField) string
 type internalValidationFuncWrapper struct {
 	fn                 FuncCtx
 	runValidationOnNil bool
+}
+
+// Validate contains the validator settings and cache
+type Validate struct {
+	tagName          string
+	pool             *sync.Pool
+	hasCustomFuncs   bool
+	hasTagNameFunc   bool
+	tagNameFunc      TagNameFunc
+	structLevelFuncs map[reflect.Type]StructLevelFuncCtx
+	customFuncs      map[reflect.Type]CustomTypeFunc
+	aliases          map[string]string
+	validations      map[string]internalValidationFuncWrapper
+	transTagFunc     map[ut.Translator]map[string]TranslationFunc
+	tagCache         *tagCache
+	structCache      *structCache
 }

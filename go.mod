@@ -5,6 +5,7 @@ require (
 	github.com/PacktPublishing/Hands-On-Dependency-Injection-in-Go v0.0.0-20190418235907-40e102283025
 	github.com/Shopify/sarama v1.23.1
 	github.com/davecgh/go-spew v1.1.1
+	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/mux v1.7.3
