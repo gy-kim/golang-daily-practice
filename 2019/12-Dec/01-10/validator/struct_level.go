@@ -33,3 +33,21 @@ type StructLevel interface {
 
 	ReportValidationErrors(relativeNamespace, relativeActualNamespace string, errs ValidationErrors)
 }
+
+var _ StructLevel = new(validate)
+
+func (v *validate) Top() reflect.Value {
+	return v.top
+}
+
+func (v *validate) Current() reflect.Value {
+	return v.slCurrent
+}
+
+func (v *validate) Validator() *Validate {
+	return v.v
+}
+
+func (v *validate) ExtractType(field reflect.Value) (reflect.Value, reflect.Kind, bool) {
+	return v.extractTypeInternal(field, false)
+}
