@@ -38,3 +38,29 @@ type FieldLevel interface {
 }
 
 var _ FieldLevel = new(validate)
+
+// Field returns current field for validation
+func (v *validate) Field() reflect.Value {
+	return v.flField
+}
+
+// FieldName returns the field's name with the tag
+// name taking precedence over the fields actual name.
+func (v *validate) FieldName() string {
+	return v.cf.altName
+}
+
+// StructFieldName returns the struct field's name
+func (v *validate) StructFieldName() string {
+	return v.cf.name
+}
+
+// Param returns param for validation against current field
+func (v *validate) Param() string {
+	return v.ct.param
+}
+
+func (v *validate) GetStructFieldOK() (reflect.Value, reflect.Kind, bool) {
+	current, kind, _, found := v.getStructFieldOKInternal(v.slflParent, v.ct.param)
+	return current, kind, found
+}

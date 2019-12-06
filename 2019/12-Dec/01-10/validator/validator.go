@@ -72,7 +72,7 @@ func (v *validate) validateStruct(ctx context.Context, parent reflect.Value, cur
 	}
 }
 
-func (v *validate) traverseField(ctx context.Context, parent reflect.Value, current reflect.Value, ns []byte, structNs []byte, cf *cField, ct *cTag) {
-	var typ reflect.Type
-	var kind reflect.Kind
-}
+// func (v *validate) traverseField(ctx context.Context, parent reflect.Value, current reflect.Value, ns []byte, structNs []byte, cf *cField, ct *cTag) {
+// 	var typ reflect.Type
+// 	var kind reflect.Kind
+// }

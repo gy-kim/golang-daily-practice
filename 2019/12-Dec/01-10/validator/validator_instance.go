@@ -28,7 +28,7 @@ const (
 	keysTag               = "keys"
 	endKeysTag            = "endkeys"
 	requiredTag           = "required"
-	namespeceSeparator    = "."
+	namespaceSeparator    = "."
 	leftBracket           = "["
 	rightBracket          = "]"
 	restrictedTagChars    = ".[],|=+()`~!@#$%^&*\\\"/?<>{}"
