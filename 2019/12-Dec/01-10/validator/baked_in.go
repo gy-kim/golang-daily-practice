@@ -166,3 +166,11 @@ func parseOneOfParam2(s string) []string {
 func isURLEncoded(fl FieldLevel) bool {
 	return uRLEncodedRegex.MatchString(fl.Field().String())
 }
+
+func isHTMLEncoded(fl FieldLevel) bool {
+	return hTMLEncodedRegex.MatchString(fl.Field().String())
+}
+
+func isHTML(fl FieldLevel) bool {
+	return hTMLRegex.MatchString(fl.Field().String())
+}

@@ -100,3 +100,13 @@ func (v *validate) ReportError(field interface{}, fieldName, structFieldName, ta
 		},
 	)
 }
+
+func (v *validate) ReportValidationErrors(relativeNamespace, relativeStructNamespace string, errs ValidationErrors) {
+	var err *FieldError
+	for i := 0; i < len(errs); i++ {
+		err = errs[i].(*fieldError)
+		err.ns = string(append(append(v.ns, relativeNamespace...), err.ns...))
+		err.structNS = string(append(append(v.actualNs, relativeStructNamespace...), err.structNs...))
+		v.errs = append(v.errs, err)
+	}
+}

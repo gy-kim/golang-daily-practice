@@ -29,6 +29,7 @@ func (e *InvalidValidationError) Error() string {
 	return "validator: (nil " + e.Type.String() + ")"
 }
 
+// ValidationErrors is an array of FieldError's
 type ValidationErrors []FieldError
 
 func (ve ValidationErrors) Error() string {
@@ -43,6 +44,19 @@ func (ve ValidationErrors) Error() string {
 	}
 
 	return strings.TrimSpace(buff.String())
+}
+
+// Translate transaltes all of the ValidationErrors
+func (ve ValidationErrors) Translate(ut ut.Translator) ValidationErrorsTranslations {
+	trans := make(ValidationErrorsTranslations)
+	var fe *fieldError
+
+	for i := 0; i < len(ve); i++ {
+		fe = ve[i].(*fieldError)
+
+		trans[fe.ns] = fe.Translate(ut)
+	}
+	return trans
 }
 
 // FieldError contains all functions to get error details

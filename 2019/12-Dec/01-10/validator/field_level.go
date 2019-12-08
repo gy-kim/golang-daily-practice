@@ -64,3 +64,16 @@ func (v *validate) GetStructFieldOK() (reflect.Value, reflect.Kind, bool) {
 	current, kind, _, found := v.getStructFieldOKInternal(v.slflParent, v.ct.param)
 	return current, kind, found
 }
+
+func (v *validate) GetStructFieldOkAdvanced(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool) {
+	current, kind, _, found := v.GetStructFieldOKAdvanced2(val, namespace)
+	return current, kind, found
+}
+
+func (v *validate) GetStructFieldOK2() (reflect.Value, reflect.Kind, bool, bool) {
+	return v.getStructFieldOKInternal(v.slflParent, v.ct.param)
+}
+
+func (v *validate) GetStructFieldOKAdvanced2(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool, bool) {
+	return v.getStructFieldOKInternal(val, namespace)
+}
