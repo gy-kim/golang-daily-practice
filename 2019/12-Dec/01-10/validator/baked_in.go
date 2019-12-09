@@ -2,6 +2,10 @@ package validator
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -173,4 +177,114 @@ func isHTMLEncoded(fl FieldLevel) bool {
 
 func isHTML(fl FieldLevel) bool {
 	return hTMLRegex.MatchString(fl.Field().String())
+}
+
+func isOneOf(fl FieldLevel) bool {
+	vals := parseOneOfParam2(fl.Param())
+
+	field := fl.Field()
+
+	var v string
+	switch field.Kind() {
+	case reflect.String:
+		v = field.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v = strconv.FormatInt(field.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v = strconv.FormatUint(field.Uint(), 10)
+	default:
+		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+	}
+	for i := 0; i < len(vals); i++ {
+		if vals[i] == v {
+			return true
+		}
+	}
+	return false
+}
+
+func isUnique(fl FieldLevel) bool {
+	field := fl.Field()
+	v := reflect.ValueOf(struct{}{})
+
+	switch field.Kind() {
+	case reflect.Slice, reflect.Array:
+		m := reflect.MakeMap(reflect.MapOf(field.Type().Elem(), v.Type()))
+
+		for i := 0; i < field.Len(); i++ {
+			m.SetMapIndex(field.Index(i), v)
+		}
+		return field.Len() == m.Len()
+	case reflect.Map:
+		m := reflect.MakeMap(reflect.MapOf(field.Type().Elem(), v.Type()))
+
+		for _, k := range field.MapKeys() {
+			m.SetMapIndex(field.MapIndex(k), v)
+		}
+		return field.Len() == m.Len()
+	default:
+		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+	}
+}
+
+func isMAC(fl FieldLevel) bool {
+	_, err := net.ParseMAC(fl.Field().String())
+
+	return err == nil
+}
+
+func isCIDRv4(fl FieldLevel) bool {
+	ip, _, err := net.ParseCIDR(fl.Field().String())
+	return err == nil && ip.To4() != nil
+}
+
+func isCIDRv6(fl FieldLevel) bool {
+	ip, _, err := net.ParseCIDR(fl.Field().Elem().String())
+	return err == nil && ip.To4() == nil
+}
+
+func isIPv4(fl FieldLevel) bool {
+	ip := net.ParseIP(fl.Field().String())
+	return ip != nil && ip.To4() != nil
+}
+
+func isIPv6(fl FieldLevel) bool {
+	ip := net.ParseIP(fl.Field().String())
+	return ip != nil && ip.To4() != nil
+}
+
+func isIP(fl FieldLevel) bool {
+	ip := net.ParseIP(fl.Field().String())
+	return ip != nil
+}
+
+func isSSN(fl FieldLevel) bool {
+	field := fl.Field()
+
+	if field.Len() != 11 {
+		return false
+	}
+
+	return sSNRegex.MatchString(field.String())
+}
+
+func isLongitude(fl FieldLevel) bool {
+	field := fl.Field()
+
+	var v string
+	switch field.Kind() {
+	case reflect.String:
+		v = field.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v = strconv.FormatInt(field.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v = strconv.FormatUint(field.Uint(), 10)
+	case reflect.Float32:
+		v = strconv.FormatFloat(field.Float(), 'f', -1, 32)
+	case reflect.Float64:
+		v = strconv.FormatFloat(field.Float(), 'f', -1, 64)
+	default:
+		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+	}
+	return longitudeRegex.MatchString(v)
 }
