@@ -1,7 +1,9 @@
 package validator
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"reflect"
@@ -287,4 +289,183 @@ func isLongitude(fl FieldLevel) bool {
 		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 	}
 	return longitudeRegex.MatchString(v)
+}
+
+// isLatitude is the validation function for validating if the field's value is a valid latitude coordinate.
+func isLatitude(fl FieldLevel) bool {
+	field := fl.Field()
+
+	var v string
+	switch field.Kind() {
+	case reflect.String:
+		v = field.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v = strconv.FormatInt(field.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v = strconv.FormatUint(field.Uint(), 10)
+	case reflect.Float32:
+		v = strconv.FormatFloat(field.Float(), 'f', -1, 32)
+	case reflect.Float64:
+		v = strconv.FormatFloat(field.Float(), 'f', -1, 64)
+	default:
+		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+	}
+
+	return latitudeRegex.MatchString(v)
+}
+
+func isDataURI(fl FieldLevel) bool {
+	uri := strings.SplitN(fl.Field().String(), ",", 2)
+	if len(uri) != 2 {
+		return false
+	}
+
+	if !dataURIRegex.MatchString(uri[0]) {
+		return false
+	}
+
+	return base64Regex.MatchString(uri[1])
+}
+
+func hasMultiByteCharacter(fl FieldLevel) bool {
+	field := fl.Field()
+
+	if field.Len() == 0 {
+		return true
+	}
+
+	return multibyteRegex.MatchString(field.String())
+}
+
+func isPrintableASCII(fl FieldLevel) bool {
+	return printableASCIIRegex.MatchString(fl.Field().String())
+}
+
+func isASCII(fl FieldLevel) bool {
+	return aSCIIRegex.MatchString(fl.Field().String())
+}
+
+func isUUID5(fl FieldLevel) bool {
+	return uUID5Regex.MatchString(fl.Field().String())
+}
+
+func isUUID4(fl FieldLevel) bool {
+	return uUID4Regex.MatchString(fl.Field().String())
+}
+
+func isUUID3(fl FieldLevel) bool {
+	return uUID3Regex.MatchString(fl.Field().String())
+}
+
+func isUUID(fl FieldLevel) bool {
+	return uUIDRegex.MatchString(fl.Field().String())
+}
+
+func isUUID5RFC4122(fl FieldLevel) bool {
+	return uUID5RFC4122Regex.MatchString(fl.Field().String())
+}
+
+func isUUID4RFC4122(fl FieldLevel) bool {
+	return uUID4RFC4122Regex.MatchString(fl.Field().String())
+}
+
+func isUUID3RFC4122(fl FieldLevel) bool {
+	return uUID3RFC4122Regex.MatchString(fl.Field().String())
+}
+
+func isUUIDRFC4122(fl FieldLevel) bool {
+	return uUIDRFC4122Regex.MatchString(fl.Field().String())
+}
+
+func isISBN(fl FieldLevel) bool {
+	return isISBN10(fl) || isISBN13(fl)
+}
+
+func isISBN13(fl FieldLevel) bool {
+	s := strings.Replace(strings.Replace(fl.Field().String(), "-", "", 4), " ", "", 4)
+	if !iSBN13Regex.MatchString(s) {
+		return false
+	}
+
+	var checksum int32
+	var i int32
+
+	factor := []int32{1, 3}
+
+	for i = 0; i < 12; i++ {
+		checksum += factor[i%2] * int32(s[i]-'0')
+	}
+
+	return (int32(s[12]-'0'))-((10-(checksum%10))%10) == 0
+}
+
+func isISBN10(fl FieldLevel) bool {
+	s := strings.Replace(strings.Replace(fl.Field().String(), "-", "", 3), " ", "", 3)
+
+	if !iSBN10Regex.MatchString(s) {
+		return false
+	}
+
+	var checksum int32
+	var i int32
+
+	for i = 0; i < 9; i++ {
+		checksum += (i + 1) * int32(s[i]-'0')
+	}
+
+	if s[9] == 'X' {
+		checksum += (i + 1) * int32(s[i]-'0')
+	} else {
+		checksum += 10 * int32(s[9]-'0')
+	}
+	return checksum%11 == 0
+}
+
+func isEthereumAddress(fl FieldLevel) bool {
+	address := fl.Field().String()
+
+	if !ethAddressRegex.MatchString(address) {
+		return false
+	}
+
+	if ethAddressRegex.MatchString(address) || ethAddressRegexLower.MatchString(address) {
+		return true
+	}
+
+	return true
+}
+
+func isBitcoinAddress(fl FieldLevel) bool {
+	address := fl.Field().String()
+
+	if !btcAddressRegex.MatchString(address) {
+		return false
+	}
+
+	alphabet := []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+
+	decode := [25]byte{}
+
+	for _, n := range []byte(address) {
+		d := bytes.IndexByte(alphabet, n)
+		for i := 24; i >= 0; i-- {
+			d += 58 * int(decode[i])
+			decode[i] = byte(d % 256)
+			d /= 256
+		}
+	}
+
+	h := sha256.New()
+	_, _ = h.Write(decode[:21])
+	d := h.Sum([]byte{})
+	h = sha256.New()
+	_, _ = h.Write(d)
+
+	validchecksum := [4]byte{}
+	computedchecksum := [4]byte{}
+
+	copy(computedchecksum[:], h.Sum(d[:0]))
+	copy(validchecksum[:], decode[21:])
+
+	return validchecksum == computedchecksum
 }
