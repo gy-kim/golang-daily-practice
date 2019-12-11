@@ -9,6 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/mux v1.7.3
+	github.com/leodido/go-urn v1.2.0
 	github.com/pkg/profile v1.3.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/stretchr/testify v1.4.0

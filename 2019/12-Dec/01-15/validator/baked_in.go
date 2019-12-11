@@ -6,12 +6,16 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net"
+	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	urn "github.com/leodido/go-urn"
 )
 
 // Func accepts a FieldLevel interface for all validation needs.
@@ -937,4 +941,197 @@ func isEq(fl FieldLevel) bool {
 	}
 
 	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isBase64(fl FieldLevel) bool {
+	return base64Regex.MatchString(fl.Field().String())
+}
+
+func isBase64URL(fl FieldLevel) bool {
+	return base64URLRegex.MatchString(fl.Field().String())
+}
+
+func isURI(fl FieldLevel) bool {
+	field := fl.Field()
+
+	switch field.Kind() {
+	case reflect.String:
+		s := field.String()
+
+		if i := strings.Index(s, "#"); i > -1 {
+			s = s[:i]
+		}
+
+		if len(s) == 0 {
+			return false
+		}
+
+		_, err := url.ParseRequestURI(s)
+
+		return err == nil
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isURL(fl FieldLevel) bool {
+	field := fl.Field()
+
+	switch field.Kind() {
+
+	case reflect.String:
+		var i int
+		s := field.String()
+
+		if i = strings.Index(s, "#"); i > -1 {
+			s = s[:i]
+		}
+
+		if len(s) == 0 {
+			return false
+		}
+
+		url, err := url.ParseRequestURI(s)
+
+		if err != nil || url.Scheme == "" {
+			return false
+		}
+
+		return err == nil
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isUrnRFC2141(fl FieldLevel) bool {
+	field := fl.Field()
+
+	switch field.Kind() {
+	case reflect.String:
+		str := field.String()
+
+		_, match := urn.Parse([]byte(str))
+		return match
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isFile(fl FieldLevel) bool {
+	field := fl.Field()
+
+	switch field.Kind() {
+	case reflect.String:
+		fileInfo, err := os.Stat(field.String())
+		if err != nil {
+			return false
+		}
+
+		return !fileInfo.IsDir()
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isEmail(fl FieldLevel) bool {
+	return emailRegex.MatchString(fl.Field().String())
+}
+
+func isHSLA(fl FieldLevel) bool {
+	return hslRegex.MatchString(fl.Field().String())
+}
+
+func isHSL(fl FieldLevel) bool {
+	return hslRegex.MatchString(fl.Field().String())
+}
+
+func isRGBA(fl FieldLevel) bool {
+	return rgbaRegex.MatchString(fl.Field().String())
+}
+
+func isRGB(fl FieldLevel) bool {
+	return rgbRegex.MatchString(fl.Field().String())
+}
+
+func isHEXColor(fl FieldLevel) bool {
+	return hexcolorRegex.MatchString(fl.Field().String())
+}
+
+func isHexadecimal(fl FieldLevel) bool {
+	return hexadecimalRegex.MatchString(fl.Field().String())
+}
+
+func isNumber(fl FieldLevel) bool {
+	switch fl.Field().Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return numberRegex.MatchString(fl.Field().String())
+	}
+}
+
+func isNumeric(fl FieldLevel) bool {
+	switch fl.Field().Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return numericRegex.MatchString(fl.Field().String())
+	}
+}
+
+func isAlphanum(fl FieldLevel) bool {
+	return alphaNumericRegex.MatchString(fl.Field().String())
+}
+
+func isAlpha(fl FieldLevel) bool {
+	return alphaRegex.MatchString(fl.Field().String())
+}
+
+func isAlphanumUnicode(fl FieldLevel) bool {
+	return alphaUnicodeNumericRegex.MatchString(fl.Field().String())
+}
+
+func isAlphaUnicode(fl FieldLevel) bool {
+	return alphaUnicodeRegex.MatchString(fl.Field().String())
+}
+
+func isDefault(fl FieldLevel) bool {
+	return !hasValue(fl)
+}
+
+func hasValue(fl FieldLevel) bool {
+	field := fl.Field()
+	switch field.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
+		return !field.IsNil()
+	default:
+		if fl.(*validate).fldIsPointer && field.Interface() != nil {
+			return true
+		}
+		return field.IsValid() && field.Interface() != reflect.Zero(field.Type()).Interface()
+	}
+}
+
+func requireCheckFieldKind(fl FieldLevel, param string, defaultNotFoundValue bool) bool {
+	field := fl.Field()
+	kind := field.Kind()
+	var nullable, found bool
+	if len(param) > 0 {
+		field, kind, nullable, found = fl.GetStructFieldOKAdvanced2(fl.Parent(), param)
+		if !found {
+			return defaultNotFoundValue
+		}
+	}
+
+	switch kind {
+	case reflect.Invalid:
+		return defaultNotFoundValue
+	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
+		return field.IsNil()
+	default:
+		if nullable && field.Interface() != nil {
+			return false
+		}
+		return field.IsValid() && field.Interface() == reflect.Zero(field.Type()).Interface()
+	}
 }
