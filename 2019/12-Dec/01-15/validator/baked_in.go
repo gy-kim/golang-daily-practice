@@ -251,6 +251,12 @@ func isCIDRv6(fl FieldLevel) bool {
 	return err == nil && ip.To4() == nil
 }
 
+func isCIDR(fl FieldLevel) bool {
+	_, _, err := net.ParseCIDR(fl.Field().String())
+
+	return err == nil
+}
+
 func isIPv4(fl FieldLevel) bool {
 	ip := net.ParseIP(fl.Field().String())
 	return ip != nil && ip.To4() != nil
@@ -476,7 +482,7 @@ func isBitcoinAddress(fl FieldLevel) bool {
 	return validchecksum == computedchecksum
 }
 
-func isBitcoinBench32Address(fl FieldLevel) bool {
+func isBitcoinBech32Address(fl FieldLevel) bool {
 	address := fl.Field().String()
 
 	if !btcLowerAddressRegexBech32.MatchString(address) && !btcUpperAddressRegexBech32.MatchString(address) {
@@ -561,6 +567,10 @@ func excludesRune(fl FieldLevel) bool {
 
 func excludesAll(fl FieldLevel) bool {
 	return !containsAny(fl)
+}
+
+func excludes(fl FieldLevel) bool {
+	return !contains(fl)
 }
 
 func containsRune(fl FieldLevel) bool {
@@ -836,7 +846,7 @@ func isNeCrossStructField(fl FieldLevel) bool {
 	return topField.String() != field.String()
 }
 
-func isEqCrossStructfield(fl FieldLevel) bool {
+func isEqCrossStructField(fl FieldLevel) bool {
 	field := fl.Field()
 	kind := field.Kind()
 
@@ -1393,4 +1403,271 @@ func isLteField(fl FieldLevel) bool {
 	}
 
 	return len(field.String()) <= len(currentField.String())
+}
+
+func isLtField(fl FieldLevel) bool {
+	field := fl.Field()
+	kind := field.Kind()
+
+	currentField, currentKind, ok := fl.GetStructFieldOK()
+	if !ok || currentKind != kind {
+		return false
+	}
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int() < currentField.Int()
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return field.Uint() < currentField.Uint()
+
+	case reflect.Float32, reflect.Float64:
+		return field.Float() < currentField.Float()
+
+	case reflect.Struct:
+		fieldType := field.Type()
+
+		if fieldType != currentField.Type() {
+			return false
+		}
+
+		if fieldType == timeType {
+			t := currentField.Interface().(time.Time)
+			fieldTime := field.Interface().(time.Time)
+
+			return fieldTime.Before(t)
+		}
+	}
+	return len(field.String()) < len(currentField.String())
+}
+
+func isLte(fl FieldLevel) bool {
+	field := fl.Field()
+	param := fl.Param()
+
+	switch field.Kind() {
+	case reflect.String:
+		p := asInt(param)
+
+		return int64(utf8.RuneCountInString(field.String())) <= p
+
+	case reflect.Slice, reflect.Map, reflect.Array:
+		p := asInt(param)
+
+		return int64(field.Len()) <= p
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		p := asInt(param)
+
+		return field.Int() <= p
+
+	case reflect.Float32, reflect.Float64:
+		p := asFloat(param)
+
+		return field.Float() <= p
+
+	case reflect.Struct:
+		if field.Type() == timeType {
+			now := time.Now().UTC()
+			t := field.Interface().(time.Time)
+			return t.Before(now) || t.Equal(now)
+		}
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isLt(fl FieldLevel) bool {
+	field := fl.Field()
+	param := fl.Param()
+
+	switch field.Kind() {
+	case reflect.String:
+		p := asInt(param)
+
+		return int64(utf8.RuneCountInString(field.String())) < p
+
+	case reflect.Slice, reflect.Map, reflect.Array:
+		p := asInt(param)
+
+		return int64(field.Len()) < p
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		p := asInt(param)
+
+		return field.Int() < p
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		p := asUint(param)
+
+		return field.Uint() < p
+
+	case reflect.Float32, reflect.Float64:
+		p := asFloat(param)
+
+		return field.Float() < p
+
+	case reflect.Struct:
+		if field.Type() == timeType {
+			return field.Interface().(time.Time).Before(time.Now().UTC())
+		}
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func hasMaxOf(fl FieldLevel) bool {
+	return isLte(fl)
+}
+
+func isTCP4AddrResolvable(fl FieldLevel) bool {
+	if !isIP4Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveTCPAddr("tcp4", fl.Field().String())
+	return err == nil
+}
+
+func isTCP6AddrResolvable(fl FieldLevel) bool {
+	if !isIP6Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveTCPAddr("tcp6", fl.Field().String())
+
+	return err == nil
+}
+
+func isTCPAddrResolvable(fl FieldLevel) bool {
+	if !isIP4Addr(fl) && !isIP6Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveTCPAddr("tcp", fl.Field().String())
+	return err == nil
+}
+
+func isUDP4AddrResolvable(fl FieldLevel) bool {
+	if !isIP4Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveUDPAddr("udp4", fl.Field().String())
+	return err == nil
+}
+
+func isUDP6AddrResolvable(fl FieldLevel) bool {
+	if !isIP6Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveUDPAddr("udp6", fl.Field().String())
+	return err == nil
+}
+
+func isUDPAddrResolvable(fl FieldLevel) bool {
+	if !isIP4Addr(fl) && !isIP6Addr(fl) {
+		return false
+	}
+
+	_, err := net.ResolveUDPAddr("udp", fl.Field().String())
+
+	return err == nil
+}
+
+func isIP4AddrResolvable(fl FieldLevel) bool {
+	if !isIPv4(fl) {
+		return false
+	}
+
+	_, err := net.ResolveIPAddr("ip4", fl.Field().String())
+	return err == nil
+}
+
+func isIP6AddrResolvable(fl FieldLevel) bool {
+	if !isIPv6(fl) {
+		return false
+	}
+
+	_, err := net.ResolveIPAddr("ip6", fl.Field().String())
+
+	return err == nil
+}
+
+func isIPAddrResolvable(fl FieldLevel) bool {
+	if !isIP(fl) {
+		return false
+	}
+
+	_, err := net.ResolveIPAddr("ip", fl.Field().String())
+
+	return err == nil
+}
+
+func isUnixAddrResolvable(fl FieldLevel) bool {
+	_, err := net.ResolveUnixAddr("unix", fl.Field().String())
+
+	return err == nil
+}
+
+func isIP4Addr(fl FieldLevel) bool {
+	val := fl.Field().String()
+
+	if idx := strings.LastIndex(val, ":"); idx != -1 {
+		val = val[0:idx]
+	}
+
+	ip := net.ParseIP(val)
+
+	return ip != nil && ip.To4() != nil
+}
+
+func isIP6Addr(fl FieldLevel) bool {
+	val := fl.Field().String()
+
+	if idx := strings.LastIndex(val, ":"); idx != -1 {
+		if idx != 0 && val[idx-1:idx] == "]" {
+			val = val[1 : idx-1]
+		}
+	}
+
+	ip := net.ParseIP(val)
+
+	return ip != nil && ip.To4() == nil
+}
+
+func isHostnameRFC952(fl FieldLevel) bool {
+	return hostnameRegexRFC952.MatchString(fl.Field().String())
+}
+
+func isHostnameRFC1123(fl FieldLevel) bool {
+	return hostnameRegexRFC1123.MatchString(fl.Field().String())
+}
+
+func isFQDN(fl FieldLevel) bool {
+	val := fl.Field().String()
+
+	if val == "" {
+		return false
+	}
+
+	if val[len(val)-1] == '.' {
+		val = val[0 : len(val)-1]
+	}
+
+	return strings.ContainsAny(val, ".") && hostnameRegexRFC952.MatchString(val)
+}
+
+func isDir(fl FieldLevel) bool {
+	field := fl.Field()
+
+	if field.Kind() == reflect.String {
+		fieldInfo, err := os.Stat(field.String())
+		if err != nil {
+			return false
+		}
+
+		return fieldInfo.IsDir()
+	}
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 }
