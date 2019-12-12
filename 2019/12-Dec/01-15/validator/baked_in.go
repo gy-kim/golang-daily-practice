@@ -1135,3 +1135,262 @@ func requireCheckFieldKind(fl FieldLevel, param string, defaultNotFoundValue boo
 		return field.IsValid() && field.Interface() == reflect.Zero(field.Type()).Interface()
 	}
 }
+
+func requiredWith(fl FieldLevel) bool {
+	params := parseOneOfParam2(fl.Param())
+	for _, param := range params {
+		if !requireCheckFieldKind(fl, param, true) {
+			return hasValue(fl)
+		}
+	}
+	return true
+}
+
+func requiredWithAll(fl FieldLevel) bool {
+	params := parseOneOfParam2(fl.Param())
+	for _, param := range params {
+		if !requireCheckFieldKind(fl, param, true) {
+			return true
+		}
+	}
+	return hasValue(fl)
+}
+
+func requiredWithout(fl FieldLevel) bool {
+	if requireCheckFieldKind(fl, strings.TrimSpace(fl.Param()), true) {
+		return hasValue(fl)
+	}
+	return true
+}
+
+func requiredWithoutAll(fl FieldLevel) bool {
+	params := parseOneOfParam2(fl.Param())
+	for _, param := range params {
+		if !requireCheckFieldKind(fl, param, true) {
+			return true
+		}
+	}
+	return hasValue(fl)
+}
+
+func isGteField(fl FieldLevel) bool {
+	field := fl.Field()
+	kind := field.Kind()
+
+	currentField, currentKind, ok := fl.GetStructFieldOK()
+	if !ok || currentKind != kind {
+		return true
+	}
+
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int() >= currentField.Int()
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return field.Uint() >= currentField.Uint()
+
+	case reflect.Float32, reflect.Float64:
+		return field.Float() >= currentField.Float()
+
+	case reflect.Struct:
+		fieldType := field.Type()
+		if fieldType != currentField.Type() {
+			return false
+		}
+
+		if fieldType == timeType {
+			t := currentField.Interface().(time.Time)
+			fieldTime := field.Interface().(time.Time)
+
+			return fieldTime.After(t) || fieldTime.Equal(t)
+		}
+	}
+
+	return len(field.String()) >= len(currentField.String())
+}
+
+func isGtField(fl FieldLevel) bool {
+	field := fl.Field()
+	kind := field.Kind()
+
+	currentField, currentKind, ok := fl.GetStructFieldOK()
+	if !ok || currentKind != kind {
+		return false
+	}
+
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int() > currentField.Int()
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return field.Uint() > currentField.Uint()
+
+	case reflect.Float32, reflect.Float64:
+		return field.Float() > currentField.Float()
+
+	case reflect.Struct:
+		fieldType := field.Type()
+
+		if fieldType != currentField.Type() {
+			return false
+		}
+
+		if fieldType == timeType {
+			t := currentField.Interface().(time.Time)
+			fieldTime := field.Interface().(time.Time)
+			return fieldTime.After(t)
+		}
+	}
+	return len(field.String()) > len(currentField.String())
+}
+
+func isGte(fl FieldLevel) bool {
+	field := fl.Field()
+	param := fl.Param()
+
+	switch field.Kind() {
+	case reflect.String:
+		p := asInt(param)
+		return int64(utf8.RuneCountInString(field.String())) >= p
+
+	case reflect.Slice, reflect.Map, reflect.Array:
+		p := asInt(param)
+
+		return int64(field.Len()) >= p
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		p := asInt(param)
+
+		return field.Int() >= p
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		p := asUint(param)
+
+		return field.Uint() >= p
+
+	case reflect.Float32, reflect.Float64:
+		p := asFloat(param)
+
+		return field.Float() >= p
+
+	case reflect.Struct:
+		if field.Type() == timeType {
+			now := time.Now().UTC()
+			t := field.Interface().(time.Time)
+
+			return t.After(now) || t.Equal(now)
+		}
+	}
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func isGt(fl FieldLevel) bool {
+	field := fl.Field()
+	param := fl.Param()
+
+	switch field.Kind() {
+	case reflect.String:
+		p := asInt(param)
+
+		return int64(utf8.RuneCountInString(field.String())) > p
+
+	case reflect.Slice, reflect.Map, reflect.Array:
+		p := asInt(param)
+
+		return int64(field.Len()) > p
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		p := asInt(param)
+
+		return field.Int() > p
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64:
+		p := asUint(param)
+
+		return field.Uint() > p
+	case reflect.Float32, reflect.Float64:
+		p := asFloat(param)
+
+		return field.Float() > p
+	case reflect.Struct:
+		if field.Type() == timeType {
+			return field.Interface().(time.Time).After(time.Now().UTC())
+		}
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func hasLengthOf(fl FieldLevel) bool {
+	field := fl.Field()
+	param := fl.Param()
+
+	switch field.Kind() {
+	case reflect.String:
+		p := asInt(param)
+		return int64(utf8.RuneCountInString(field.String())) == p
+
+	case reflect.Slice, reflect.Map, reflect.Array:
+		p := asInt(param)
+
+		return int64(field.Len()) == p
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		p := asInt(param)
+
+		return field.Int() == p
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		p := asUint(param)
+
+		return field.Uint() == p
+
+	case reflect.Float32, reflect.Float64:
+		p := asFloat(param)
+
+		return field.Float() == p
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
+}
+
+func hasMinOf(fl FieldLevel) bool {
+	return isGte(fl)
+}
+
+func isLteField(fl FieldLevel) bool {
+	field := fl.Field()
+	kind := field.Kind()
+
+	currentField, currentKind, ok := fl.GetStructFieldOK()
+	if !ok || currentKind != kind {
+		return false
+	}
+
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int() <= currentField.Int()
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return field.Uint() <= currentField.Uint()
+
+	case reflect.Float32, reflect.Float64:
+		return field.Float() <= currentField.Float()
+
+	case reflect.Struct:
+		fieldType := field.Type()
+
+		if fieldType != currentField.Type() {
+			return false
+		}
+
+		if fieldType == timeType {
+			t := currentField.Interface().(time.Time)
+			fieldTime := field.Interface().(time.Time)
+
+			return fieldTime.Before(t) || fieldTime.Equal(t)
+		}
+	}
+
+	return len(field.String()) <= len(currentField.String())
+}
