@@ -25,7 +25,7 @@ type Func func(fl FieldLevel) bool
 type FuncCtx func(ctx context.Context, fl FieldLevel) bool
 
 // wrapFunc wraps noramal Func makes it compatible with FuncCtx
-func wrapFun(fn Func) FuncCtx {
+func wrapFunc(fn Func) FuncCtx {
 	if fn == nil {
 		return nil
 	}

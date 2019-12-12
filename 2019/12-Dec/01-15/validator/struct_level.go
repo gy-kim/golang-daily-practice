@@ -11,7 +11,7 @@ type StructLevelFunc func(sl StructLevel)
 // StructLevelFuncCtx accepts all values needed for struct level validation
 type StructLevelFuncCtx func(ctx context.Context, sl StructLevel)
 
-func wrapStrutLevelFunc(fn StructLevelFunc) StructLevelFuncCtx {
+func wrapStructLevelFunc(fn StructLevelFunc) StructLevelFuncCtx {
 	return func(ctx context.Context, sl StructLevel) {
 		fn(sl)
 	}
@@ -102,11 +102,11 @@ func (v *validate) ReportError(field interface{}, fieldName, structFieldName, ta
 }
 
 func (v *validate) ReportValidationErrors(relativeNamespace, relativeStructNamespace string, errs ValidationErrors) {
-	var err *FieldError
+	var err *fieldError
 	for i := 0; i < len(errs); i++ {
 		err = errs[i].(*fieldError)
 		err.ns = string(append(append(v.ns, relativeNamespace...), err.ns...))
-		err.structNS = string(append(append(v.actualNs, relativeStructNamespace...), err.structNs...))
+		err.structNs = string(append(append(v.actualNs, relativeStructNamespace...), err.structNs...))
 		v.errs = append(v.errs, err)
 	}
 }
