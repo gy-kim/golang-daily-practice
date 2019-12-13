@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -192,4 +193,248 @@ func (v *Validate) RegisterCustomTypeFunc(fn CustomTypeFunc, types ...interface{
 		v.customFuncs[reflect.TypeOf(t)] = fn
 	}
 	v.hasCustomFuncs = true
+}
+
+func (v *Validate) RegisterTranslate(tag string, trans ut.Translator, registerFn RegisterTranslationsFunc, translationFn TranslationFunc) (err error) {
+	if v.transTagFunc == nil {
+		v.transTagFunc = make(map[ut.Translator]map[string]TranslationFunc)
+	}
+
+	if err = registerFn(trans); err != nil {
+		return
+	}
+
+	m, ok := v.transTagFunc[trans]
+	if !ok {
+		m = make(map[string]TranslationFunc)
+		v.transTagFunc[trans] = m
+	}
+
+	m[tag] = translationFn
+	return
+}
+
+func (v *Validate) Struct(s interface{}) error {
+	return v.StructCtx(context.Background(), s)
+}
+
+func (v *Validate) StructCtx(ctx context.Context, s interface{}) (err error) {
+	val := reflect.ValueOf(s)
+	top := val
+
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct || val.Type() == timeType {
+		return &InvalidValidationError{Type: reflect.TypeOf(s)}
+	}
+
+	vd := v.pool.Get().(*validate)
+	vd.top = top
+	vd.isPartial = false
+
+	vd.validateStruct(ctx, top, val, val.Type(), vd.ns[0:0], vd.actualNs[0:0], nil)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+
+	v.pool.Put(vd)
+
+	return
+}
+
+func (v *Validate) StructFiltered(s interface{}, fn FilterFunc) error {
+	return v.StructFilteredCtx(context.Background(), s, fn)
+}
+
+func (v *Validate) StructFilteredCtx(ctx context.Context, s interface{}, fn FilterFunc) (err error) {
+	val := reflect.ValueOf(s)
+	top := val
+
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct || val.Type() == timeType {
+		return &InvalidValidationError{Type: reflect.TypeOf(s)}
+	}
+
+	vd := v.pool.Get().(*validate)
+	vd.top = top
+	vd.isPartial = true
+	vd.ffn = fn
+
+	vd.validateStruct(ctx, top, val, val.Type(), vd.ns[0:0], vd.actualNs[0:0], nil)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+
+	v.pool.Put(vd)
+
+	return
+}
+
+func (v *Validate) StructPartial(s interface{}, fields ...string) error {
+	return v.StructPartialCtx(context.Background(), s, fields...)
+}
+
+func (v *Validate) StructPartialCtx(ctx context.Context, s interface{}, fields ...string) (err error) {
+	val := reflect.ValueOf(s)
+	top := val
+
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct || val.Type() == timeType {
+		return &InvalidValidationError{Type: reflect.TypeOf(s)}
+	}
+
+	vd := v.pool.Get().(*validate)
+	vd.top = top
+	vd.isPartial = true
+	vd.ffn = nil
+	vd.hasExcludes = false
+	vd.includeExclude = make(map[string]struct{})
+
+	typ := val.Type()
+	name := typ.Name()
+
+	for _, k := range fields {
+		flds := strings.Split(k, namespaceSeparator)
+		if len(flds) > 0 {
+			vd.misc = append(vd.misc[0:0], name...)
+			vd.misc = append(vd.misc, '.')
+
+			for _, s := range flds {
+				idx := strings.Index(s, leftBracket)
+
+				if idx != -1 {
+					for idx != -1 {
+						vd.misc = append(vd.misc, s[:idx]...)
+						vd.includeExclude[string(vd.misc)] = struct{}{}
+
+						idx2 := strings.Index(s, rightBracket)
+						idx2++
+						vd.misc = append(vd.misc, s[idx:idx2]...)
+						vd.includeExclude[string(vd.misc)] = struct{}{}
+						s = s[idx2:]
+						idx = strings.Index(s, leftBracket)
+					}
+				} else {
+					vd.misc = append(vd.misc, s...)
+					vd.includeExclude[string(vd.misc)] = struct{}{}
+				}
+				vd.misc = append(vd.misc, '.')
+			}
+		}
+	}
+
+	vd.validateStruct(ctx, top, val, typ, vd.ns[0:0], vd.actualNs[0:0], nil)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+	v.pool.Put(vd)
+
+	return
+}
+
+func (v *Validate) StructExcept(s interface{}, fields ...string) error {
+	return v.StructExceptCtx(context.Background(), s, fields...)
+}
+
+func (v *Validate) StructExceptCtx(ctx context.Context, s interface{}, fields ...string) (err error) {
+	val := reflect.ValueOf(s)
+	top := val
+
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct || val.Type() == timeType {
+		return &InvalidValidationError{Type: reflect.TypeOf(s)}
+	}
+
+	vd := v.pool.Get().(*validate)
+	vd.top = top
+	vd.isPartial = true
+	vd.ffn = nil
+	vd.hasExcludes = true
+	vd.includeExclude = make(map[string]struct{})
+
+	typ := val.Type()
+	name := typ.Name()
+
+	for _, key := range fields {
+		vd.misc = vd.misc[0:0]
+
+		if len(name) > 0 {
+			vd.misc = append(vd.misc, name...)
+			vd.misc = append(vd.misc, '.')
+		}
+
+		vd.misc = append(vd.misc, key...)
+		vd.includeExclude[string(vd.misc)] = struct{}{}
+	}
+	vd.validateStruct(ctx, top, val, typ, vd.ns[0:0], vd.actualNs[0:0], nil)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+	v.pool.Put(vd)
+	return
+}
+
+func (v *Validate) Var(field interface{}, tag string) error {
+	return v.VarCtx(context.Background(), field, tag)
+}
+
+func (v *Validate) VarCtx(ctx context.Context, field interface{}, tag string) (err error) {
+	if len(tag) == 0 || tag == skipValidationTag {
+		return nil
+	}
+
+	ctag := v.fetchCacheTag(tag)
+	val := reflect.ValueOf(field)
+	vd := v.pool.Get().(*validate)
+	vd.top = val
+	vd.isPartial = false
+	vd.traverseField(ctx, val, val, vd.ns[0:0], vd.actualNs[0:0], defaultCField, ctag)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+	v.pool.Put(vd)
+	return
+}
+
+func (v *Validate) VarWithValue(field interface{}, other interface{}, tag string) error {
+	return v.VarWithValueCtx(context.Background(), field, other, tag)
+}
+
+func (v *Validate) VarWithValueCtx(ctx context.Context, field interface{}, other interface{}, tag string) (err error) {
+	if len(tag) == 0 || tag == skipValidationTag {
+		return nil
+	}
+	ctag := v.fetchCacheTag(tag)
+	otherVal := reflect.ValueOf(other)
+	vd := v.pool.Get().(*validate)
+	vd.top = otherVal
+	vd.isPartial = false
+	vd.traverseField(ctx, otherVal, reflect.ValueOf(field), vd.ns[0:0], vd.actualNs[0:0], defaultCField, ctag)
+
+	if len(vd.errs) > 0 {
+		err = vd.errs
+		vd.errs = nil
+	}
+	v.pool.Put(vd)
+	return
 }

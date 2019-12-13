@@ -40,6 +40,10 @@ func (v *validate) Top() reflect.Value {
 	return v.top
 }
 
+func (v *validate) Parent() reflect.Value {
+	return v.slflParent
+}
+
 func (v *validate) Current() reflect.Value {
 	return v.slCurrent
 }

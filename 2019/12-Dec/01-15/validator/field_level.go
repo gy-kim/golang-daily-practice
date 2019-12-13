@@ -65,7 +65,7 @@ func (v *validate) GetStructFieldOK() (reflect.Value, reflect.Kind, bool) {
 	return current, kind, found
 }
 
-func (v *validate) GetStructFieldOkAdvanced(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool) {
+func (v *validate) GetStructFieldOKAdvanced(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool) {
 	current, kind, _, found := v.GetStructFieldOKAdvanced2(val, namespace)
 	return current, kind, found
 }
