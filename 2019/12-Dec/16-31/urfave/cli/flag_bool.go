@@ -76,3 +76,22 @@ func (f *BoolFlag) Apply(set *flag.FlagSet) error {
 	}
 	return nil
 }
+
+func (c *Context) Bool(name string) bool {
+	if fs := lookupFlagSet(name, c); fs != nil {
+		return lookupBool(name, fs)
+	}
+	return false
+}
+
+func lookupBool(name string, set *flag.FlagSet) bool {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := strconv.ParseBool(f.Value.String())
+		if err != nil {
+			return false
+		}
+		return parsed
+	}
+	return false
+}

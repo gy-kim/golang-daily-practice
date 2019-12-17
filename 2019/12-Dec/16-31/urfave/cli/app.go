@@ -76,6 +76,7 @@ type App struct {
 	didSetup bool
 }
 
+// Author represents someone who
 type Author struct {
 	Name  string
 	Email string

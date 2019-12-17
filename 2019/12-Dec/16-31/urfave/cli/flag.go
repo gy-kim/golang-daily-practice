@@ -138,6 +138,16 @@ func visibleFlags(fl []Flag) []Flag {
 	return visible
 }
 
+func stringifyFloat64SliceFlag(f *Float64SliceFlag) string {
+	var defaultVals []string
+	if f.Value != nil && len(f.Value.Value()) > 0 {
+		for _, i := range f.Value.Value() {
+			defaultVals = append(defaultVals, strings.TrimRight(strings.TrimRight(fmt.Sprintf("%f", i), "0"), "."))
+		}
+	}
+	return stringifySliceFlag(f.Usage, f.Names(), defaultVals)
+}
+
 func stringifyStringSliceFlag(f *StringSliceFlag) string {
 	var defaultVals []string
 	if f.Value != nil && len(f.Value.Value()) > 0 {
