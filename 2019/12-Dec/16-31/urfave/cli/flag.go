@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -138,6 +140,128 @@ func visibleFlags(fl []Flag) []Flag {
 	return visible
 }
 
+func prefixFor(name string) (prefix string) {
+	if len(name) == 1 {
+		prefix = "-"
+	} else {
+		prefix = "--"
+	}
+	return
+}
+
+// Returns the placeholder, if any, and the unquoted usage string.
+func unquoteUsage(usage string) (string, string) {
+	for i := 0; i < len(usage); i++ {
+		if usage[i] == '`' {
+			for j := i + 1; j < len(usage); j++ {
+				if usage[j] == '`' {
+					name := usage[i+1 : j]
+					usage = usage[:i] + name + usage[j+1:]
+					return name, usage
+				}
+			}
+			break
+		}
+	}
+	return "", usage
+}
+
+func prefixedNames(names []string, placeholder string) string {
+	var prefixed string
+	for i, name := range names {
+		if name == "" {
+			continue
+		}
+
+		prefixed += prefixFor(name) + name
+		if placeholder != "" {
+			prefixed += " " + placeholder
+		}
+		if i < len(names)-1 {
+			prefixed += ", "
+		}
+	}
+	return prefixed
+}
+
+func withEnvHint(envVars []string, str string) string {
+	envText := ""
+	if envVars != nil && len(envVars) > 0 {
+		prefix := "$"
+		suffix := ""
+		sep := ", $"
+		if runtime.GOOS == "windows" {
+			prefix = "%"
+			suffix = "%"
+			sep = "%, %"
+		}
+
+		envText = fmt.Sprintf(" [%s%s%s]", prefix, strings.Join(envVars, sep), suffix)
+	}
+	return str + envText
+}
+
+func flagNames(f Flag) []string {
+	var ret []string
+
+	name := flagStringField(f, "Name")
+	aliases := flagStringSliceField(f, "Aliases")
+
+	for _, part := range append([]string{name}, aliases...) {
+		ret = append(ret, commaWhitespace.ReplaceAllString(part, ""))
+	}
+
+	return ret
+}
+
+func flagStringSliceField(f Flag, name string) []string {
+	fv := flagValue(f)
+	field := fv.FieldByName(name)
+
+	if field.IsValid() {
+		return field.Interface().([]string)
+	}
+
+	return []string{}
+}
+
+func flagStringField(f Flag, name string) string {
+	fv := flagValue(f)
+	field := fv.FieldByName(name)
+
+	if field.IsValid() {
+		return field.String()
+	}
+
+	return ""
+}
+
+func withFileHint(filePath, str string) string {
+	fileText := ""
+	if filePath != "" {
+		fileText = fmt.Sprintf(" [%s]", filePath)
+	}
+	return str + fileText
+}
+
+func flagValue(f Flag) reflect.Value {
+	fv := reflect.ValueOf(f)
+	for fv.Kind() == reflect.Ptr {
+		fv = reflect.Indirect(fv)
+	}
+	return fv
+}
+
+// func stringifyFlag(f Flag) string {
+// 	fv := flagValue(f)
+
+// 	switch f.(type) {
+// 	case *IntSliceFlag:
+// 		return withEnvHint(flagStringSliceField(f, "EnvVars"),
+// 			stringifyIntSliceFlag(f.(*IntSliceFlag)))
+// 	}
+// }
+
 func stringifyFloat64SliceFlag(f *Float64SliceFlag) string {
 	var defaultVals []string
 	if f.Value != nil && len(f.Value.Value()) > 0 {
@@ -161,7 +285,7 @@ func stringifyStringSliceFlag(f *StringSliceFlag) string {
 }
 
 func stringifySliceFlag(usage string, names, defaultVals []string) string {
-	placeholder, usage := unquoteUage(usage)
+	placeholder, usage := unquoteUsage(usage)
 	if placeholder == "" {
 		placeholder = defaultPlaceholder
 	}
