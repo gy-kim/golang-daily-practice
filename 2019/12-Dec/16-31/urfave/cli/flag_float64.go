@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-// BoolFlag is a flag with type bool
-type BoolFlag struct {
+// Float64Flag is a flag with type float64
+type Float64Flag struct {
 	Name        string
 	Aliases     []string
 	Usage       string
@@ -15,90 +15,90 @@ type BoolFlag struct {
 	FilePath    string
 	Required    bool
 	Hidden      bool
-	Value       bool
+	Value       float64
 	DefaultText string
-	Destination *bool
+	Destination *float64
 	HasBeenSet  bool
 }
 
 // IsSet returns whether or not the flag has been set through env or file
-func (f *BoolFlag) IsSet() bool {
+func (f *Float64Flag) IsSet() bool {
 	return f.HasBeenSet
 }
 
 // String returns a readable representation of this value
-// (for usage defaults)
-func (f *BoolFlag) String() string {
+func (f *Float64Flag) String() string {
 	return FlagStringer(f)
 }
 
 // Names returns the names of the flag
-func (f *BoolFlag) Names() []string {
+func (f *Float64Flag) Names() []string {
 	return flagNames(f)
 }
 
 // IsRequired returns whether or not the flag is required
-func (f *BoolFlag) IsRequired() bool {
+func (f *Float64Flag) IsRequired() bool {
 	return f.Required
 }
 
-// TakesValue returns true if the flag takes a value, otherwise false
-func (f *BoolFlag) TakesValue() bool {
-	return false
+// TakesValue returns true of the flag takes a value, otherwise false
+func (f *Float64Flag) TakesValue() bool {
+	return true
 }
 
 // GetUsage returns the usage string for the flag
-func (f *BoolFlag) GetUsage() string {
+func (f *Float64Flag) GetUsage() string {
 	return f.Usage
 }
 
 // GetValue returns the flags value as string representation and an empty
 // string if the flag takes no value at all.
-func (f *BoolFlag) GetValue() string {
-	return ""
+func (f *Float64Flag) GetValue() string {
+	return fmt.Sprintf("%f", f.Value)
 }
 
 // Apply populates the flag given the flag set and environment
-func (f *BoolFlag) Apply(set *flag.FlagSet) error {
+func (f *Float64Flag) Apply(set *flag.FlagSet) error {
 	if val, ok := flagFromEnvOrFile(f.EnvVars, f.FilePath); ok {
 		if val != "" {
-			valBool, err := strconv.ParseBool(val)
+			valFloat, err := strconv.ParseFloat(val, 10)
 
 			if err != nil {
-				return fmt.Errorf("could not parse %q as bool value for flag %s: %s", val, f.Name, err)
+				return fmt.Errorf("could not parse %q as float64 value for flag %s: %s", val, f.Name, err)
 			}
-			f.Value = valBool
+
+			f.Value = valFloat
 			f.HasBeenSet = true
 		}
 	}
 
 	for _, name := range f.Names() {
 		if f.Destination != nil {
-			set.BoolVar(f.Destination, name, f.Value, f.Usage)
+			set.Float64Var(f.Destination, name, f.Value, f.Usage)
 			continue
 		}
-		set.Bool(name, f.Value, f.Usage)
+		set.Float64(name, f.Value, f.Usage)
 	}
 	return nil
 }
 
-// Bool looks up the value of a local BoolFlag, returns
-// false if not found
-func (c *Context) Bool(name string) bool {
+// Float64 look up the value of a local Float64Flag, returns
+// 0 if not found
+func (c *Context) Float64(name string) float64 {
 	if fs := lookupFlagSet(name, c); fs != nil {
-		return lookupBool(name, fs)
+		return lookupFloat64(name, fs)
 	}
-	return false
+	return 0
 }
 
-func lookupBool(name string, set *flag.FlagSet) bool {
+func lookupFloat64(name string, set *flag.FlagSet) float64 {
 	f := set.Lookup(name)
 	if f != nil {
-		parsed, err := strconv.ParseBool(f.Value.String())
+		parsed, err := strconv.ParseFloat(f.Value.String(), 64)
 		if err != nil {
-			return false
+			return 0
 		}
 		return parsed
 	}
-	return false
+	return 0
 }
